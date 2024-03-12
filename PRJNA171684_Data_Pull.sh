@@ -4,7 +4,7 @@
 #SBATCH --ntasks=1                          # Run a single task
 #SBATCH --cpus-per-task=6                 # Number of CPU cores per task
 #SBATCH --mem=100gb                          # Job memory request
-#SBATCH --time=5:00:00                     # Time limit hrs:min:sec
+#SBATCH --time=72:00:00                     # Time limit hrs:min:sec
 #SBATCH --output=/scratch/tms51355/Taylor2024/rawdata/log.%j			# Location of standard output and error log files ##want an output in the work folder 
 #SBATCH --mail-type=END,FAIL                # Mail events (NONE, BEGIN, END, FAIL, ALLd)
 #SBATCH --mail-user=taylor.scroggs@uga.edu   # Where to send mail
@@ -37,3 +37,4 @@ for sra_file in $sra_files; do
 done
 
 echo "SRA files for BioProject $bioproject downloaded and converted to FASTQ."
+echo tS
