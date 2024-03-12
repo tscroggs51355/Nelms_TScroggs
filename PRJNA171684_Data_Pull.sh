@@ -33,8 +33,8 @@ sra_files=$(find "$OUTDIR"/ncbi/public/sra -name "*.sra")
 
 # Convert SRA files to FASTQ format 
 for sra_file in $sra_files; do
-    fastq-dump --split-files "$sra_file"
+    fastq-dump --split-files --gzip "$sra_file"
 done
 
 echo "SRA files for BioProject $bioproject downloaded and converted to FASTQ."
-echo tS
+echo pwz 
