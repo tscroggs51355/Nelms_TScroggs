@@ -1,0 +1,633 @@
+#### August Data, R and C1 
+## Working Script 
+
+setwd("C:/Users/taylo/Desktop/AugustSequencingNelms2024/")
+annots = strsplit(read.table('Mapped_Data/stringtie_out/stringtie_merged.gtf', sep = '\t')[,9], '; ')
+names(annots) = unlist(lapply(annots, function(xx) { xx[1] }))
+names(annots) = sub('gene_id ', '', names(annots))
+annots = annots[!duplicated(names(annots))]
+annots = sub(';', '', sub(' ', '', unlist(lapply(annots, function(xx) { sub('.+ ', '', if (length(xx) == 3) { xx[3] } else { xx[1] }) }))))
+
+files = dir('Mapped_Data/UMIcounts')
+A0 = list()
+for (f in files) {
+  A0[[f]] = read.table(paste('Mapped_Data/UMIcounts/', f, sep = ''), sep = '\t', header=T, row.names=1)
+}
+
+gn = unique(unlist(lapply(A0, rownames)))
+A = matrix(NA, nrow = length(gn), ncol = length(files))
+rownames(A) = gn
+colnames(A) = files
+for (f in files) {
+  A[,f] = A0[[f]][match(gn,rownames(A0[[f]])),1]
+}
+
+colnames(A) <- sub(".*_(\\d+s)\\.bam\\.tsv$", "\\1", colnames(A)) # Renaming columns to just make them the number and s 
+colnames(A) # just check what everything is 
+A[is.na(A)] = 0
+A = A[rowSums(A) > 0,]
+rownames(A) = annots[rownames(A)]
+dim(A)
+[1] 34747    96
+A <- A[grepl("^Zm", rownames(A)), ]
+dim(A)
+[1] 26257    96
+
+## check for duplicated rownames with duplicated(rownames(A)) in base R studio 
+# can also use A[duplicated(rownames(A))] to see the exact positons of duplicates 
+
+for (g in unique(rownames(A)[duplicated(rownames(A))])) {
+    i = which(rownames(A) == g)
+    A[i[1],] = colSums(A[i,])
+    A = A[-i[-1],]
+}
+
+### Here 11/1/2024 - 1:31 PM 
+
+A = A[,-10] #remove 19s as it was strange 
+A = A[,order(as.numeric(sub('s','',colnames(A))))]
+colnames(A) 
+A = A[,-c(32:96)] #removing columns 32 through 96 
+colnames(A)
+
+samples <- c("5s", "6s", "7s", "8s", "25s", "26s", "27s", "28s",   # R
+             "17s", "18s", "20s", "21s", "22s", "23s", "24s",       # C1
+             "1s", "2s", "3s", "4s", "9s", "10s", "11s", "12s",     # R+C1
+             "13s", "14s", "15s", "16s", "29s", "30s", "31s", "32s") # Control
+conditions <- c(rep("R", 8),       # 8 samples for R
+                rep("C1", 7),     # 7 samples for C1
+                rep("R+C1", 8),   # 8 samples for R+C1
+                rep("Control", 8)) # 8 samples for Control
+colData <- data.frame(
+  condition = factor(conditions, levels = c("R", "C1", "R+C1", "Control"))
+)
+
+rownames(colData) <- samples            
+counts <- A[,samples] ## now re-ordered based on the samples that we gave above 
+counts[is.na(counts)] <- 0 #replaced NA with 0 
+
+pseudocount = 100
+B2 = A[,colSums(A) >= 5000]
+B3 = log(sweep(B2,2,colSums(B2),'/')*10^6 + pseudocount, 10)
+B4 = B3[rowSums(B2 >= 10) >= 2,] ### Values in B4 are now TPM normalized with pseudocount of 100 and log transformed
+logTPM <- t(scale(t(B4)))
+
+library(DESeq2)
+
+dds <- DESeqDataSetFromMatrix(countData = counts, colData = colData, design = ~ condition)
+dds <- DESeq(dds)
+
+R_control <- results(dds, contrast = c("condition", "R", "Control"))
+C1_control <- results(dds, contrast = c("condition", "C1", "Control"))
+R_C1_control <- results(dds, contrast = c("condition", "R+C1", "Control"))
+summary (R_control) 
+summary(C1_control)
+summary(R_C1_control)
+
+# summary (R_control) 
+
+#out of 26098 with nonzero total read count
+#adjusted p-value < 0.1
+#LFC > 0 (up)       : 4948, 19%
+#LFC < 0 (down)     : 3826, 15%
+#outliers [1]       : 0, 0%
+#low counts [2]     : 8099, 31%
+#(mean count < 0)
+#[1] see 'cooksCutoff' argument of ?results
+#[2] see 'independentFiltering' argument of ?results
+
+#summary(C1_control)
+
+#out of 26098 with nonzero total read count
+#adjusted p-value < 0.1
+#LFC > 0 (up)       : 1245, 4.8%
+#LFC < 0 (down)     : 1822, 7%
+#outliers [1]       : 0, 0%
+#low counts [2]     : 11134, 43%
+#(mean count < 1)
+#[1] see 'cooksCutoff' argument of ?results
+#[2] see 'independentFiltering' argument of ?results
+
+#summary(R_C1_control)
+
+#out of 26098 with nonzero total read count
+#adjusted p-value < 0.1
+#LFC > 0 (up)       : 4207, 16%
+#LFC < 0 (down)     : 3212, 12%
+#outliers [1]       : 0, 0%
+#low counts [2]     : 8605, 33%
+#(mean count < 0)
+#[1] see 'cooksCutoff' argument of ?results
+#[2] see 'independentFiltering' argument of ?results
+
+PVal_R <- R_control$pvalue
+PVal_C1 <- C1_control$pvalue
+PVal_R_C1 <- R_C1_control$pvalue
+
+combined_pvalues <- data.frame(
+  R= PVal_R,
+  C1= PVal_C1,
+  R_C1= PVal_R_C1
+)
+rownames(combined_pvalues) = rownames(R_control)
+
+X2 = -2*rowSums(log(combined_pvalues))
+combined_pvalues$p_pool = pchisq(X2, 2*ncol(combined_pvalues), lower.tail=F) + dchisq(X2,2*3)
+
+#Doublecheck whether dchisq is appropriate here before publication, have brad double check 
+
+#stick with holms for the remainder of the analysis, but calculating FDR is always a good practice 
+Adjusted_pvalue <- p.adjust(Pooled_pvalue, method = "holm") 
+significant_adjustedpvalue <- sum(Adjusted_pvalue <= 0.05, na.rm = TRUE)
+significant_adjustedpvalue
+[1] 4570
+
+#calculating log fold change using DDS from DESeq2 
+> nrow(dplyr::filter(as.data.frame(R_control), abs(log2FoldChange) >= 1))
+[1] 2964
+> rownames(dplyr::filter(as.data.frame(C1_control), abs(log2FoldChange) >= 1))
+[1] 489
+> nrow(dplyr::filter(as.data.frame(R_C1_control), abs(log2FoldChange) >= 1))
+[1] 3470
+unique(c(a,b,c))
+
+
+combined_pvalues$padj = p.adjust(combined_pvalues$p_pool, method = "holm") 
+
+combined_pvalues$maxLog2 = apply(cbind(R_control[,2], C1_control[,2], R_C1_control[,2]), 1, function(xx) { xx[rank(-abs(xx), ties.method = 'first') == 1] })
+
+#sum((combined_pvalues$padj <= .05) & (abs(combined_pvalues$maxLog2) >= 1), na.rm=T)
+#head(combined_pvalues[which((combined_pvalues$padj <= .05) & (abs(combined_pvalues$maxLog2) >= 1)),])
+
+combined_pvalues$Significant = (combined_pvalues$padj <= .05) & (abs(combined_pvalues$maxLog2) >= 1)
+combined_pvalues$Significant[is.na(combined_pvalues$Significant)] = FALSE
+
+combined_pvalues = combined_pvalues[order(-combined_pvalues$Significant, combined_pvalues$padj),]
+sigGenes = rownames(combined_pvalues)[combined_pvalues$Significant]
+
+
+### Timepoint: 3:31PM, 11/4/2024
+#clustering 
+# for clustering make sure to use logTPM values, which are z log transformed 
+# should subset based on DEGs (using pvalue and fold change cutoff) or top 500-1000 genes 
+#known as sigGenes 
+
+d <- dist(logTPM, method="euclidean") # First, construct a distance matrix.
+
+hc <- hclust(d, method = "ward.D2")
+
+plot(hc, labels = rownames(logTPM), main = "Hierarchical Clustering Dendrogram", xlab = "Gene Names")
+
+num_clusters <- 4  # Set your desired number of clusters
+clusters <- cutree(hc, k = num_clusters)
+table(clusters)
+
+#table(clusters)
+#clusters
+#   1    2    3    4
+#2126 2085 4287 1766
+
+#maybe 5 clusters is appropriate? Going to stick with 4 clusters for this GO Term Analysis 
+
+filtered_clusters <- clusters[names(clusters) %in% sigGenes]
+clusters_df <- data.frame(gene = names(filtered_clusters), cluster = filtered_clusters)
+clusters_df$cluster <- as.numeric(clusters_df$cluster)
+clusters_df <- clusters_df[order(clusters_df$cluster), ] 
+write.csv(clusters_df, "clusters_df.csv", row.names = FALSE)
+
+
+
+
+
+logTPM[sigGenes[1:500],
+
+
+
+
+
+#######################################################################################################################################
+
+library(ComplexHeatmap)
+cor_matrix = cor(B4[!(rownames(B4) %in% anthGenes[c('C1','R1')]),], method = "pearson")
+Heatmap(cor_matrix)
+
+pairs(unique(B2[,c(1,2,5:6,13:14,17:18)])+1,log='xy',pch=19,cex=.4)
+
+B3ord = B3[,order(as.numeric(sub('s','',colnames(B3))))]
+B3samptype = (B3ord[,seq(1,32,4)] + B3ord[,seq(2,32,4)] + B3ord[,seq(3,32,4)] + B3ord[,seq(4,32,4)])/4
+colnames(B3samptype) = c('R Alone', 'R+C1', 'C1 Alone', 'R+BZ2', 'C1+BZ2', 'BZ2 Alone', 'R+C1+BZ2', 'pTSA19')
+
+# Use B3 normalized data, take rowMeans within treatment groups -> matrix with 8 samples. Plot pairs between the samples, color code anthocyanin genes red
+anthGenes = c('Zm00001eb014290', 'Zm00001eb374230', 'Zm00001eb159020', 'Zm00001eb373660', 'Zm00001eb278680', 'Zm00001eb048110','Zm00001eb429330')
+names(anthGenes) = c('P1','bz1','A1','C1', 'pl1', 'bz2', 'R')
+
+aG = rownames(B3samptype) %in% anthGenes
+pairs(B3samptype + 1, pch = 19, cex = .4, col = c('black','red')[1 + aG])
+
+plot(B3samptype[!aG,])
+points(B3samptype[aG,], col = 'red')
+
+cor_matrix = cor(B4[!(rownames(B4) %in% anthGenes[c('C1','R1')]),], method = "pearson")
+Heatmap(cor_matrix)
+
+sum(rownames(B4) %in% anthGenes[c('C1','R1')])
+rownames(B4) %in% anthGenes[c('C1','R1')]
+
+#--> Brad Looking into Data: 
+#cor_matrix = cor(B4, method = "pearson")
+#Heatmap(cor_matrix)
+#pairs(B4[,1:4], pch = 19, cex =.5)
+#pairs(B4[,1:6], pch = 19, cex =.5)
+#pairs(A[,1:6] + 1, log='xy', pch = 19, cex =.5)
+
+-- After Conversation with Brad: 
+  
+samples <- dir(pattern = "*.tab.summary")
+for i in samples
+X <- lapply(samples, read.table)
+library(data.table)
+XX <- rbindlist(X)
+
+###################################################################################################################################
+
+#figuring things out, a lot of this is a repeat of what is considered the #workingscript above 
+#October 3rd Analysis 
+## V1 of DeSeq2 Analysis 
+
+setwd("C:/Users/taylo/Desktop/AugustSequencingNelms2024/")
+annots = strsplit(read.table('Mapped_Data/stringtie_out/stringtie_merged.gtf', sep = '\t')[,9], '; ')
+names(annots) = unlist(lapply(annots, function(xx) { xx[1] }))
+names(annots) = sub('gene_id ', '', names(annots))
+annots = annots[!duplicated(names(annots))]
+annots = sub(';', '', sub(' ', '', unlist(lapply(annots, function(xx) { sub('.+ ', '', if (length(xx) == 3) { xx[3] } else { xx[1] }) }))))
+
+files = dir('Mapped_Data/UMIcounts')
+A0 = list()
+for (f in files) {
+  A0[[f]] = read.table(paste('Mapped_Data/UMIcounts/', f, sep = ''), sep = '\t', header=T, row.names=1)
+}
+
+gn = unique(unlist(lapply(A0, rownames)))
+A = matrix(NA, nrow = length(gn), ncol = length(files))
+rownames(A) = gn
+colnames(A) = files
+for (f in files) {
+  A[,f] = A0[[f]][match(gn,rownames(A0[[f]])),1]
+}
+
+
+colnames(A) <- sub(".*_(\\d+s)\\.bam\\.tsv$", "\\1", colnames(A)) # Renaming columns to just make them the number and s 
+colnames(A) # just check what everything is 
+A[is.na(A)] = 0
+A = A[rowSums(A) > 0,]
+rownames(A) = annots[rownames(A)]
+
+for (g in unique(rownames(A)[duplicated(rownames(A))])) {
+    i = which(rownames(A) == g)
+    A[i[1],] = colSums(A[i,])
+    A = A[-i[-1],]
+}
+
+A = A[,-10] #remove 19s as it was strange 
+A = A[,order(as.numeric(sub('s','',colnames(A))))]
+colnames(A) 
+A = A[,-c(32:96)] #removing columns 32 through 96 
+colnames(A)
+samples <- c("5s", "6s", "7s", "8s", "25s", "26s", "27s", "28s",   # R
+             "17s", "18s", "20s", "21s", "22s", "23s", "24s",       # C1
+             "1s", "2s", "3s", "4s", "9s", "10s", "11s", "12s",     # R+C1
+             "13s", "14s", "15s", "16s", "29s", "30s", "31s", "32s") # Control
+conditions <- c(rep("R", 8),       # 8 samples for R
+                rep("C1", 7),     # 7 samples for C1
+                rep("R+C1", 8),   # 8 samples for R+C1
+                rep("Control", 8)) # 8 samples for Control
+colData <- data.frame(
+  condition = factor(conditions, levels = c("R", "C1", "R+C1", "Control"))
+)
+rownames(colData) <- samples
+
+A <- A[grepl("^Zm", rownames(A)), ]             
+
+counts <- A[,samples] ## now re-ordered based on the samples that we gave above 
+logTPM <- t(scale(t(B4)))
+
+library(DESeq2)
+counts[is.na(counts)] <- 0 #replaced NA with 0 
+
+dds <- DESeqDataSetFromMatrix(countData = counts, colData = colData, design = ~ condition)
+dds <- DESeq(dds)
+
+
+R_control <- results(dds, contrast = c("condition", "R", "Control"))
+C1_control <- results(dds, contrast = c("condition", "C1", "Control"))
+R_C1_control <- results(dds, contrast = c("condition", "R+C1", "Control"))
+summary (R_control) 
+summary(C1_control)
+summary(R_C1_control)
+
+
+R_control <- results(dds, contrast = c("condition", "R", "Control"))
+C1_control <- results(dds, contrast = c("condition", "C1", "Control"))
+R_C1_control <- results(dds, contrast = c("condition", "R+C1", "Control"))
+
+# summary (R_control) 
+
+#out of 26098 with nonzero total read count
+#adjusted p-value < 0.1
+#LFC > 0 (up)       : 4948, 19%
+#LFC < 0 (down)     : 3826, 15%
+#outliers [1]       : 0, 0%
+#low counts [2]     : 8099, 31%
+#(mean count < 0)
+#[1] see 'cooksCutoff' argument of ?results
+#[2] see 'independentFiltering' argument of ?results
+
+#summary(C1_control)
+
+#out of 26098 with nonzero total read count
+#adjusted p-value < 0.1
+#LFC > 0 (up)       : 1245, 4.8%
+#LFC < 0 (down)     : 1822, 7%
+#outliers [1]       : 0, 0%
+#low counts [2]     : 11134, 43%
+#(mean count < 1)
+#[1] see 'cooksCutoff' argument of ?results
+#[2] see 'independentFiltering' argument of ?results
+
+#summary(R_C1_control)
+
+#out of 26098 with nonzero total read count
+#adjusted p-value < 0.1
+#LFC > 0 (up)       : 4207, 16%
+#LFC < 0 (down)     : 3212, 12%
+#outliers [1]       : 0, 0%
+#low counts [2]     : 8605, 33%
+#(mean count < 0)
+#[1] see 'cooksCutoff' argument of ?results
+#[2] see 'independentFiltering' argument of ?results
+
+PVal_R <- R_control$pvalue
+PVal_C1 <- C1_control$pvalue
+PVal_R_C1 <- R_C1_control$pvalue
+
+combined_pvalues <- data.frame(
+  R= PVal_R,
+  C1= PVal_C1,
+  R_C1= PVal_R_C1
+)
+rownames(combined_pvalues) = rownames(R_control)
+
+X2 = -2*rowSums(log(combined_pvalues))
+combined_pvalues$p_pool = pchisq(X2, 2*ncol(combined_pvalues), lower.tail=F) + dchisq(X2,2*3)
+
+#Doublecheck whether dchisq is appropriate here before publication, have brad double check 
+
+### Testing out different thresholds and metrics (learning experience for taylor)
+# Calculating FDR (max threshold of 0.01) and holms (pvalue of 0.05)
+Pooled_pvalue <- combined_pvalues$p_pool
+FDR <- p.adjust(Pooled_pvalue, method ="BH")
+> significant_FDR <- sum(FDR < 0.01, na.rm = TRUE)
+> significant_FDR
+[1] 7635
+> significant_FDR <- sum(FDR < 0.001, na.rm = TRUE)
+> significant_FDR
+[1] 6223
+> significant_FDR <- sum(FDR < 0.0001, na.rm = TRUE)
+> significant_FDR
+[1] 5227
+> significant_FDR <- sum(FDR < 0.00000001, na.rm = TRUE)
+> significant_FDR
+[1] 3170
+> significant_FDR <- sum(FDR < 0.00000000000000000000000001, na.rm = TRUE)
+> significant_FDR
+[1] 942
+###########################################################################################################33
+
+#stick with holms for the remainder of the analysis, but calculating FDR is always a good practice 
+Adjusted_pvalue <- p.adjust(Pooled_pvalue, method = "holm") 
+significant_adjustedpvalue <- sum(Adjusted_pvalue <= 0.05, na.rm = TRUE)
+significant_adjustedpvalue
+[1] 4570
+
+#calculating log fold change using DDS from DESeq2 
+> nrow(dplyr::filter(as.data.frame(R_control), abs(log2FoldChange) >= 1))
+[1] 2964
+> rownames(dplyr::filter(as.data.frame(C1_control), abs(log2FoldChange) >= 1))
+[1] 489
+> nrow(dplyr::filter(as.data.frame(R_C1_control), abs(log2FoldChange) >= 1))
+[1] 3470
+unique(c(a,b,c))
+
+
+combined_pvalues$padj = p.adjust(combined_pvalues$p_pool, method = "holm") 
+
+combined_pvalues$maxLog2 = apply(cbind(R_control[,2], C1_control[,2], R_C1_control[,2]), 1, function(xx) { xx[rank(-abs(xx), ties.method = 'first') == 1] })
+
+#sum((combined_pvalues$padj <= .05) & (abs(combined_pvalues$maxLog2) >= 1), na.rm=T)
+#head(combined_pvalues[which((combined_pvalues$padj <= .05) & (abs(combined_pvalues$maxLog2) >= 1)),])
+
+combined_pvalues$Significant = (combined_pvalues$padj <= .05) & (abs(combined_pvalues$maxLog2) >= 1)
+combined_pvalues$Significant[is.na(combined_pvalues$Significant)] = FALSE
+
+combined_pvalues = combined_pvalues[order(-combined_pvalues$Significant, combined_pvalues$padj),]
+sigGenes = rownames(combined_pvalues)[combined_pvalues$Significant]
+
+### END OF BLOCK ### Testing out different thresholds and metrics (learning experience for taylor) ######
+
+
+#################################### 
+
+
+#Need Log Transformed TPM 
+setwd("C:/Users/taylo/Desktop/AugustSequencingNelms2024/")
+annots = strsplit(read.table('Mapped_Data/stringtie_out/stringtie_merged.gtf', sep = '\t')[,9], '; ')
+names(annots) = unlist(lapply(annots, function(xx) { xx[1] }))
+names(annots) = sub('gene_id ', '', names(annots))
+annots = annots[!duplicated(names(annots))]
+annots = sub(';', '', sub(' ', '', unlist(lapply(annots, function(xx) { sub('.+ ', '', if (length(xx) == 3) { xx[3] } else { xx[1] }) }))))
+
+
+files = dir('Mapped_Data/UMIcounts')
+A0 = list()
+for (f in files) {
+  A0[[f]] = read.table(paste('Mapped_Data/UMIcounts/', f, sep = ''), sep = '\t', header=T, row.names=1)
+}
+
+gn = unique(unlist(lapply(A0, rownames)))
+A = matrix(NA, nrow = length(gn), ncol = length(files))
+rownames(A) = gn
+colnames(A) = files
+for (f in files) {
+  A[,f] = A0[[f]][match(gn,rownames(A0[[f]])),1]
+}
+
+
+colnames(A) = sub('_S.bam*', '', colnames(A))
+A[is.na(A)] = 0
+A = A[rowSums(A) > 0,]
+rownames(A) = annots[rownames(A)]
+
+
+colnames(A) # just check what everything is 
+A = A[,-10] #remove 19s as it was strange 
+A = A[,order(as.numeric(sub('s','',colnames(A))))]
+colnames(A) 
+A = A[,-c(32:96)] #removing columns 32 through 96 
+colnames(A)
+
+ A<- A[grepl("^Zm", rownames(A)), ]     
+> dim(A)
+[1] 26257    31
+
+## Reordering samples to be based on treatment 
+
+samples <- c("5s", "6s", "7s", "8s", "25s", "26s", "27s", "28s",   # R
+             "17s", "18s", "20s", "21s", "22s", "23s", "24s",       # C1
+             "1s", "2s", "3s", "4s", "9s", "10s", "11s", "12s",     # R+C1
+             "13s", "14s", "15s", "16s", "29s", "30s", "31s", "32s") # Control
+
+
+val_samples <- samples[samples %in% colnames(A)]
+A <- A[, val_samples]
+
+## Pseudocount and Log Transformation 
+pseudocount = 100
+B2 = A[,colSums(A) >= 5000]
+B3 = log(sweep(B2,2,colSums(B2),'/')*10^6 + pseudocount, 10)
+B4 = B3[rowSums(B2 >= 10) >= 2,]
+
+#### B4 is completley filtered 
+dim(B4)
+[1] 10211    30
+
+logTPM <- t(scale(t(B4))) #zscore 
+
+
+# kmeans clustering with the number of samples taken into consideration 
+# logTPM goes into the kmeans clustering 
+
+library(ComplexHeatmap)
+hm = Heatmap(logTPM[sigGenes[1:500],-ncol(logTPM)], cluster_rows = TRUE) 
+
+# Kmeans Clustering, 
+set.seed(123)
+kmeans.res <- kmeans(logTPM, 3, nstart = 25)
+clusters <- kmeans.res$clusters
+logTPM <- cbind(logTPM, cluster = clusters)
+allsig_genes <- sigGenes[sigGenes %in% rownames(logTPM)]
+dim(allsig_genes)
+hm2 = Heatmap(logTPM[allsig_genes, -ncol(logTPM)], show_row_names = F, row_km = 3)
+#slack has all the plots for 1) all the significant genes, the top 500 and top 1000 for the three cluster method 
+
+
+#increasing the amount of clusters 
+kmeans.res <- kmeans(logTPM, 4, nstart = 25)
+clusters <- kmeans.res$clusters
+logTPM <- cbind(logTPM, cluster = clusters)
+hm2 = Heatmap(logTPM[sigGenes[1:1000], -ncol(logTPM)], show_row_names = F, row_km = 4)
+
+kmeans.res <- kmeans(logTPM, 5, nstart = 25)
+clusters <- kmeans.res$clusters
+logTPM <- cbind(logTPM, cluster = clusters)
+Heatmap(logTPM[sigGenes[1:1000], -ncol(logTPM)], show_row_names = F, row_km = 5)
+
+kmeans.res <- kmeans(logTPM, 6, nstart = 25)
+clusters <- kmeans.res$clusters
+logTPM <- cbind(logTPM, cluster = clusters)
+Heatmap(logTPM[sigGenes[1:1000], -ncol(logTPM)], show_row_names = F, row_km = 6)
+
+kmeans.res <- kmeans(logTPM, 8, nstart = 25)
+clusters <- kmeans.res$clusters
+logTPM <- cbind(logTPM, cluster = clusters)
+Heatmap(logTPM[sigGenes[1:1000], -ncol(logTPM)], show_row_names = F, row_km = 8)
+
+kmeans.res <- kmeans(logTPM, 10, nstart = 25)
+clusters <- kmeans.res$clusters
+logTPM <- cbind(logTPM, cluster = clusters)
+Heatmap(logTPM[sigGenes[1:1000], -ncol(logTPM)], show_row_names = F, row_km = 10)
+
+kmeans.res <- kmeans(logTPM, 12, nstart = 25)
+clusters <- kmeans.res$clusters
+logTPM <- cbind(logTPM, cluster = clusters)
+Heatmap(logTPM[sigGenes[1:1000], -ncol(logTPM)], show_row_names = F, row_km = 12)
+
+## Because clusters are confusing to me, is there a more quantitative approach to this 
+library(cluster) 
+library(factoextra) 
+fviz_nbclust(logTPM[sigGenes[1:1000], -ncol(logTPM)], kmeans, method = "wss")
+
+### Based on the elbow method, looks like 4 clusters is the most appropriate 
+ 
+r.dend <- row_dend(HM)  #If needed, extract row dendrogram
+rcl.list <- row_order(hm2)  #Extract clusters (output is a list)
+  
+lapply(rcl.list, function(x) length(x))  #check/confirm size gene clusters
+
+
+### Important Gene Names 
+GRMZM2G018724	C2
+GRMZM2G701063 pl1 
+GRMZM2G016241 bz2 
+GRMZM2G005066 C1
+GRMZM2G026930 A1
+GRMZM2G165390 bz1 
+GRMZM2G335358 p1
+Zm00001eb429330  R1 
+
+
+### Notes 
+#reads per UMI calculation needed 
+#Raw reads for T1A - T4, nominal reads compared to mapped reads 
+#look at plasmmid sign in the fastq.gz data
+  
+####################################################################################################################
+## Brad Exploring R + C1 Data, sent via slack 
+#information from Brad 
+# Load these packages 
+library("pasilla")
+library("tidyverse")
+library("DESeq2")
+library("pheatmap")
+library("RColorBrewer")
+library("apeglm")
+library("DEGreport")
+
+load("C:/Users/taylo/Desktop/AugustSequencingNelms2024/forTaylor.rda")
+D2 = log transformed TPM data with pseudocount, remove sample 19s as it is an outlier
+tissue = R and C1 status (a character vector in the same order as the columns of D2 stating R and C1 expression in each)
+print(tissue)
+[1] "A+B"     "A+B"     "A+B"     "A+B"     "A"       "A"       "A"       "A"       "A+B"    
+[10] "A+B"     "A+B"     "A+B"     "control" "control" "control" "control" "B"       "B"      
+[19] "B"       "B"       "B"       "B"       "B"       "A"       "A"       "A"       "A"      
+[28] "control" "control" "control" "control"
+anthGenes = c('Zm00001eb014290', 'Zm00001eb374230', 'Zm00001eb159020', 'Zm00001eb373660', 'Zm00001eb278680', 'Zm00001eb048110','Zm00001eb429330')
+names(anthGenes) = c('P1','bz1','A1','C1', 'pl1', 'bz2', 'R')
+tissue
+calcF = function(tissueX) { 
+  tissueMeans = matrix(NA, nrow = nrow(D2), ncol = length(unique(tissueX)))
+  colnames(tissueMeans) = unique(tissueX)
+  for (z in unique(tissueX)) { tissueMeans[,z] = rowMeans(D2[,tissueX == z]) }
+  
+  var_exp = rowSums(sweep(sweep(tissueMeans, 1, rowMeans(D2), '-')^2, 2, table(tissueX)[colnames(tissueMeans)], '*'))/(ncol(tissueMeans) - 1)
+  var_unexp = rowSums((D2 - tissueMeans[,tissueX])^2)/(ncol(D2) - ncol(tissueMeans))
+  Ft = var_exp/var_unexp
+  return(Ft)
+}
+
+# Parametric F-test
+FtData = calcF(tissue)
+p.Ft = pf(FtData, length(unique(tissue)) - 1, ncol(D2) - length(unique(tissue)), lower.tail = F)
+library(ComplexHeatmap)
+Heatmap(t(scale(t(D2[rank(p.Ft) <= 1000,]))),show_row_names=F, column_km=4, row_km = 5)  # Heatmap of top 1000 genes
+
+
+
+# Below is the permutation F-test
+N.Ftperm = rep(0, length(FtData) + 1)
+for (j in 1:2000) {
+  FtNULL = sapply(1:1000, function(i) { calcF(sample(tissue)) })
+  N.Ftperm = N.Ftperm + c(1000, rowSums(sweep(FtNULL, 1, FtData, '-') >= 0))
+  save(N.Ftperm, file = 'Tissue HS permutations.rda')
+}
+p.Ftperm = (N.Ftperm[-1] + .5)/(N.Ftperm[1] + .5)
+####  
