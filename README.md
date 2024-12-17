@@ -1,4 +1,6 @@
 # Nelms_TScroggs
 
 ### Overall Pipeline for Analyzing RNA sequencing data 
-## Updated February 2024 
+
+December 2024 
+
