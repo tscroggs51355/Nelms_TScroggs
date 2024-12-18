@@ -38,7 +38,7 @@ if [ ! -f "Mapped_Data/demultiplexed/""$file2""_dT-1s.fastq.gz" ]; then
 module load fastp/0.23.2
 	fastp -w 4 -i "$file" -I "Raw_Data/""$file2""_R2_001.fastq.gz" -o "Mapped_Data/demultiplexed/umi_""$file2""_R1.fastq.gz" -O "Mapped_Data/demultiplexed/umi_""$file2""_R2.fastq.gz" -A -Q -L -G --umi --umi_loc read2 --umi_len 10 --umi_prefix UMI
 
-	fastq-multx -b -B "/scratch/tms51355/Taylor2024/CELSeq_barcodes.txt" -m 0 "Mapped_Data/demultiplexed/umi_""$file2""_R2.fastq.gz" "Mapped_Data/demultiplexed/umi_""$file2""_R1.fastq.gz" -o "Mapped_Data/demultiplexed/""$file2""_%_R2.fastq.gz" "Mapped_Data/demultiplexed/""$file2""_%.fastq.gz"  # Split read 2 file by CELseq barcodes. Require perfect match to barcode in expected location
+	fastq-multx -b -B "/scratch/tms51355/Taylor2024/RC1_Nov2024/CELSeq_barcodes" -m 0 "Mapped_Data/demultiplexed/umi_""$file2""_R2.fastq.gz" "Mapped_Data/demultiplexed/umi_""$file2""_R1.fastq.gz" -o "Mapped_Data/demultiplexed/""$file2""_%_R2.fastq.gz" "Mapped_Data/demultiplexed/""$file2""_%.fastq.gz"  # Split read 2 file by CELseq barcodes. Require perfect match to barcode in expected location
 
 fi
 done
@@ -88,7 +88,7 @@ if [ ! -f "Mapped_Data/hisat2_out/""$file2"".bam" ]; then
 	
 	module load HISAT2/2.2.1-gompi-2022a
 	module load SAMtools/1.16.1-GCC-11.3.0
-	hisat2 -p 4 --dta -x /scratch/tms51355/Taylor2024/Mapped_Data/maize_tran -U "Mapped_Data/hisat2_out/""$file2"".fastq.gz" | samtools view -bS -> "Mapped_Data/hisat2_out/""$file2""_unsorted.bam"
+	hisat2 -p 4 --dta -x /scratch/tms51355/Taylor2024/RC1_Nov2024/maize_tran -U "Mapped_Data/hisat2_out/""$file2"".fastq.gz" | samtools view -bS -> "Mapped_Data/hisat2_out/""$file2""_unsorted.bam"
 	
 	module load SAMtools/1.16.1-GCC-11.3.0
 	samtools sort -@ 8 "Mapped_Data/hisat2_out/""$file2""_unsorted.bam" -o "Mapped_Data/hisat2_out/""$file2"".bam"
@@ -101,3 +101,9 @@ Step 4: Clean up files
 	find "Mapped_Data/hisat2_out/" -name "*_unsorted.bam" -delete
 
 
+for file in "Mapped_Data/demultiplexed/"*s.fastq*
+do
+	file2="${file:26:-9}"
+	module load fastp/0.23.2-GCC-11.2.0
+	fastp -w 4 -i "$file" -o "Mapped_Data/hisat2_out/""$file2"".fastq.gz" -y -x -3 -a AAAAAAAAAAAA
+	done
