@@ -66,3 +66,122 @@ find "Mapped_Data/demultiplexed/" -name "*s_R2*" -print
 
 find "Mapped_Data/demultiplexed/" -name "umi_*" -delete
 find "Mapped_Data/demultiplexed/" -name "*s_R2*" -delete
+
+
+## Single Tube NTS1, Mapping Check 
+
+fastp -w 4 -i Mapped_Data/demultiplexed/T7_S16_L002_1s.fastq.gz -o Mapped_Data/hisat2_out/T7_S16_L002_1s.fastq.gz -y -x -3 -a AAAAAAAAAAAA
+fastp v0.23.2, time used: 7 seconds
+
+The following have been reloaded with a version change:
+  1) GCC/11.2.0 => GCC/11.3.0
+  2) GCCcore/11.2.0 => GCCcore/11.3.0
+  3) binutils/2.37-GCCcore-11.2.0 => binutils/2.38-GCCcore-11.3.0
+  4) zlib/1.2.11-GCCcore-11.2.0 => zlib/1.2.12-GCCcore-11.3.0
+
+1824749 reads; of these:
+  1824749 (100.00%) were unpaired; of these:
+    722662 (39.60%) aligned 0 times
+    595879 (32.66%) aligned exactly 1 time
+    506208 (27.74%) aligned >1 times
+60.40% overall alignment rate
+[bam_sort_core] merging from 0 files and 8 in-memory blocks...
+
+The following have been reloaded with a version change:
+  1) GCC/11.3.0 => GCC/11.2.0
+  2) GCCcore/11.3.0 => GCCcore/11.2.0
+  3) binutils/2.38-GCCcore-11.3.0 => binutils/2.37-GCCcore-11.2.0
+  4) zlib/1.2.12-GCCcore-11.3.0 => zlib/1.2.11-GCCcore-11.2.0
+
+Read1 before filtering:
+total reads: 1467598
+total bases: 221607298
+Q20 bases: 203163330(91.6772%)
+Q30 bases: 183739746(82.9123%)
+
+Read1 after filtering:
+total reads: 1438416
+total bases: 166247464
+Q20 bases: 161918389(97.396%)
+Q30 bases: 154040242(92.6572%)
+
+Filtering result:
+reads passed filter: 1438416
+reads failed due to low quality: 10570
+reads failed due to too many N: 0
+reads failed due to too short: 18380
+reads failed due to low complexity: 232
+reads with adapter trimmed: 948018
+bases trimmed due to adapters: 49658567
+reads with polyX in 3' end: 18089
+bases trimmed in polyX tail: 520027
+
+Duplication rate (may be overestimated since this is SE data): 24.9564%
+
+JSON report: fastp.json
+HTML report: fastp.html
+
+fastp -w 4 -i Mapped_Data/demultiplexed/T8_S17_L002_1s.fastq.gz -o Mapped_Data/hisat2_out/T8_S17_L002_1s.fastq.gz -y -x -3 -a AAAAAAAAAAAA
+fastp v0.23.2, time used: 6 seconds
+
+The following have been reloaded with a version change:
+  1) GCC/11.2.0 => GCC/11.3.0
+  2) GCCcore/11.2.0 => GCCcore/11.3.0
+  3) binutils/2.37-GCCcore-11.2.0 => binutils/2.38-GCCcore-11.3.0
+  4) zlib/1.2.11-GCCcore-11.2.0 => zlib/1.2.12-GCCcore-11.3.0
+
+1438416 reads; of these:
+  1438416 (100.00%) were unpaired; of these:
+    658411 (45.77%) aligned 0 times
+    485117 (33.73%) aligned exactly 1 time
+    294888 (20.50%) aligned >1 times
+54.23% overall alignment rate
+
+
+
+# Step 3: Stringtie 
+#!/bin/bash
+#SBATCH --job-name=stringtie2_out
+#SBATCH --partition=batch
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=50gb
+#SBATCH --time=72:00:00
+#SBATCH --output=stringtie2.%j.out
+#SBATCH --error=stringtie2.%j.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=taylor.scroggs@uga.edu
+#SBATCH --export=NONE
+
+
+mkdir "Mapped_Data/stringtie_out"
+
+for file in "Mapped_Data/hisat2_out/"*.bam
+do
+        module load StringTie/2.2.1-GCC-11.2.0
+        stringtie -p 4 -G /scratch/tms51355/Taylor2024/August_2024_Sequencing_T/Zm-B73-REFERENCE-NAM-5.0_Zm00001eb.1.gff3 --rf -o "Mapped_Data/stringtie_out/""${file:22:-4}"".gtf" "$file"
+done
+
+# Step 4: Stringtie Merge 
+#!/bin/bash
+#SBATCH --job-name=stringtie2_merge
+#SBATCH --partition=batch
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=50gb
+#SBATCH --time=72:00:00
+#SBATCH --output=stringtie2merge.%j.out
+#SBATCH --error=stringtie2merge.%j.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=taylor.scroggs@uga.edu
+#SBATCH --export=NONE
+
+cd $SLURM_SUBMIT_DIR
+ls -1 "Mapped_Data/stringtie_out/"*.gtf | gawk '{print $0}' > mergelist.txt
+
+# Load StringTie module
+module load StringTie/2.2.1-GCC-11.2.0
+
+# Merge GTF files
+stringtie --merge -p 4 -G /scratch/tms51355/Taylor2024/August_2024_Sequencing_T/Zm-B73-REFERENCE-NAM-5.0_Zm00001eb.1.gff3 -o "/scratch/tms51355/Taylor2024/August_2024_Sequencing_T/Mapped_Data/stringtie_out/stringtie_merge
+d.gtf" mergelist.txt
