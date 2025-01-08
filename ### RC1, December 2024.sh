@@ -6,7 +6,7 @@ cp CELSeq_barcodes /scratch/tms51355/Taylor2024/RC1_Nov2024/
 cp maize*  /scratch/tms51355/Taylor2024/RC1_Nov2024/
 cp Zm*  /scratch/tms51355/Taylor2024/RC1_Nov2024/
 
-mkdir mkdir Raw_Data
+mkdir Raw_Data
 mkdir Mapped_Data
 mkdir Mapped_Data/demultiplexed
 
@@ -38,7 +38,7 @@ if [ ! -f "Mapped_Data/demultiplexed/""$file2""_dT-1s.fastq.gz" ]; then
 module load fastp/0.23.2
 	fastp -w 4 -i "$file" -I "Raw_Data/""$file2""_R2_001.fastq.gz" -o "Mapped_Data/demultiplexed/umi_""$file2""_R1.fastq.gz" -O "Mapped_Data/demultiplexed/umi_""$file2""_R2.fastq.gz" -A -Q -L -G --umi --umi_loc read2 --umi_len 10 --umi_prefix UMI
 
-	fastq-multx -b -B "/scratch/tms51355/Taylor2024/RC1_Nov2024/CELSeq_barcodes" -m 0 "Mapped_Data/demultiplexed/umi_""$file2""_R2.fastq.gz" "Mapped_Data/demultiplexed/umi_""$file2""_R1.fastq.gz" -o "Mapped_Data/demultiplexed/""$file2""_%_R2.fastq.gz" "Mapped_Data/demultiplexed/""$file2""_%.fastq.gz"  # Split read 2 file by CELseq barcodes. Require perfect match to barcode in expected location
+	fastq-multx -b -B "/scratch/tms51355/Taylor2024/NTS1/CELSeq_barcodes" -m 0 "Mapped_Data/demultiplexed/umi_""$file2""_R2.fastq.gz" "Mapped_Data/demultiplexed/umi_""$file2""_R1.fastq.gz" -o "Mapped_Data/demultiplexed/""$file2""_%_R2.fastq.gz" "Mapped_Data/demultiplexed/""$file2""_%.fastq.gz"  
 
 fi
 done
@@ -96,14 +96,98 @@ if [ ! -f "Mapped_Data/hisat2_out/""$file2"".bam" ]; then
 fi
 done
 
+
+
 Step 4: Clean up files 
 	find "Mapped_Data/hisat2_out/" -name "*fastq.gz" -delete
 	find "Mapped_Data/hisat2_out/" -name "*_unsorted.bam" -delete
 
 
-for file in "Mapped_Data/demultiplexed/"*s.fastq*
-do
-	file2="${file:26:-9}"
-	module load fastp/0.23.2-GCC-11.2.0
-	fastp -w 4 -i "$file" -o "Mapped_Data/hisat2_out/""$file2"".fastq.gz" -y -x -3 -a AAAAAAAAAAAA
-	done
+File Check: 
+
+High multimapping, on par with October 2023
+
+fastp -w 4 -i Mapped_Data/demultiplexed/RC1_S22_L002_10s.fastq.gz -o Mapped_Data/hisat2_out/RC1_S22_L002_10s.fastq.gz -y -x -3 -a AAAAAAAAAAAA
+fastp v0.23.2, time used: 5 seconds
+
+The following have been reloaded with a version change:
+  1) GCC/11.2.0 => GCC/11.3.0
+  2) GCCcore/11.2.0 => GCCcore/11.3.0
+  3) binutils/2.37-GCCcore-11.2.0 => binutils/2.38-GCCcore-11.3.0
+  4) zlib/1.2.11-GCCcore-11.2.0 => zlib/1.2.12-GCCcore-11.3.0
+
+1657820 reads; of these:
+  1657820 (100.00%) were unpaired; of these:
+    256313 (15.46%) aligned 0 times
+    154901 (9.34%) aligned exactly 1 time
+    1246606 (75.20%) aligned >1 times
+84.54% overall alignment rate
+[bam_sort_core] merging from 0 files and 8 in-memory blocks...
+
+The following have been reloaded with a version change:
+  1) GCC/11.3.0 => GCC/11.2.0
+  2) GCCcore/11.3.0 => GCCcore/11.2.0
+  3) binutils/2.38-GCCcore-11.3.0 => binutils/2.37-GCCcore-11.2.0
+  4) zlib/1.2.12-GCCcore-11.3.0 => zlib/1.2.11-GCCcore-11.2.0
+
+Read1 before filtering:
+total reads: 1036302
+total bases: 156481602
+Q20 bases: 142183897(90.863%)
+Q30 bases: 127685078(81.5975%)
+
+Read1 after filtering:
+total reads: 994381
+total bases: 118530501
+Q20 bases: 115175085(97.1692%)
+Q30 bases: 109645033(92.5036%)
+
+Filtering result:
+reads passed filter: 994381
+reads failed due to low quality: 9957
+reads failed due to too many N: 0
+reads failed due to too short: 31415
+reads failed due to low complexity: 549
+reads with adapter trimmed: 528457
+bases trimmed due to adapters: 33312231
+reads with polyX in 3' end: 19317
+bases trimmed in polyX tail: 782805
+
+Duplication rate (may be overestimated since this is SE data): 38.4783%
+
+JSON report: fastp.json
+HTML report: fastp.html
+
+fastp -w 4 -i Mapped_Data/demultiplexed/RC1_S22_L002_11s.fastq.gz -o Mapped_Data/hisat2_out/RC1_S22_L002_11s.fastq.gz -y -x -3 -a AAAAAAAAAAAA
+fastp v0.23.2, time used: 4 seconds
+
+The following have been reloaded with a version change:
+  1) GCC/11.2.0 => GCC/11.3.0
+  2) GCCcore/11.2.0 => GCCcore/11.3.0
+  3) binutils/2.37-GCCcore-11.2.0 => binutils/2.38-GCCcore-11.3.0
+  4) zlib/1.2.11-GCCcore-11.2.0 => zlib/1.2.12-GCCcore-11.3.0
+
+994381 reads; of these:
+  994381 (100.00%) were unpaired; of these:
+    182346 (18.34%) aligned 0 times
+    122930 (12.36%) aligned exactly 1 time
+    689105 (69.30%) aligned >1 times
+81.66% overall alignment rate
+[bam_sort_core] merging from 0 files and 8 in-memory blocks...
+
+
+gunzip RC1_S22_L002_1s.fastq.gz | sed -n '2~4p' | head -n 100000 | sort | uniq -c | sort -nr | head -n 10
+
+   1650 GGCGGTGGATACCTAGGCACCCAGAGACGAGGAAGGGCGTAGCAAGCGACGAAATGCTTCGGGGAGTTGAAAATAAGCATAGATCCGGAGATTCCCAAATAGGTCAACCTTTTGAACTGCCTGCTGAATCCATGAGCAGGCAAGAGACAAC
+   1308 GGGGGCTCGAAGACGATCAGATACCGTCCTAGTCTCAACCATAAACGATGCCGACCAGGGATCAGCGGGTGTTACTAATAGGACCCCGCTGGCACCTTATGAGAAATCAAAGTCTTTGGGTTCCGGGGGGAGTATGGTCGCAAGGCTGAAA 
+   ## 18s Ribosomal 
+   1116 GGGGGCATTCGTATTTCATAGTCAGAGGTGAAATTCTTGGATTTATGAAAGACGAACAACTGCGAAAGCATTTGCCAAGGATGTTTTCATTAATCAAGAACGAAAGTTGGGGGCTCGAAGACGATCAGATACCGTCCTAGTCTCAACCATA
+   1046 TGCGGTGGATACCTAGGCACCCAGAGACGAGGAAGGGCGTAGCAAGCGACGAAATGCTTCGGGGAGTTGAAAATAAGCATAGATCCGGAGATTCCCAAATAGGTCAACCTTTTGAACTGCCTGCTGAATCCATGAGCAGGCAAGAGACAAC
+    610 GGGCGTAGCAAGCGACGAAATGCTTCGGGGAGTTGAAAATAAGCATAGATCCGGAGATTCCCAAATAGGTCAACCTTTTGAACTGCCTGCTGAATCCATGAGCAGGCAAGAGACAACCTGGCGAACTGAAACATCTTAGTAGCCAGAGGAA
+    565 GCCCTATCAACTTTCGATGGTAGGATAGGGGCCTACCATGGTGGTGACGGGTGACGGAGAATTAGGGTTCGATTCCGGAGAGGGAGCCTGAGAAACGGCTACCACATCCAAGGAAGGCAGCAGGCGCGCAAATTACCCAATCCTGACACGG
+	## 18s Ribosomal 
+    470 GCCCTGTCAACTTTCGATGGTAGGATAGGGGCCTACCATGGTGGTGACGGGTGACGGAGAATTAGGGTTCGATTCCGGAGAGGGAGCCTGAGAAACGGCTACCACATCCAAGGAAGGCAGCAGGCGCGCAAATTACCCAATCCTGACACGG
+	# 18s Ribosomal 
+    436 TTGCGGTGGATACCTAGGCACCCAGAGACGAGGAAGGGCGTAGCAAGCGACGAAATGCTTCGGGGAGTTGAAAATAAGCATAGATCCGGAGATTCCCAAATAGGTCAACCTTTTGAACTGCCTGCTGAATCCATGAGCAGGCAAGAGACAA
+    434 TCGGGGAGTTGAAAATAAGCATAGATCCGGAGATTCCCAAATAGGTCAACCTTTTGAACTGCCTGCTGAATCCATGAGCAGGCAAGAGACAACCTGGCGAACTGAAACATCTTAGTAGCCAGAGGAAAAAAAAAAAAAAAAAAAAAAAAAA
+    423 GGGCGGTGGATACCTAGGCACCCAGAGACGAGGAAGGGCGTAGCAAGCGACGAAATGCTTCGGGGAGTTGAAAATAAGCATAGATCCGGAGATTCCCAAATAGGTCAACCTTTTGAACTGCCTGCTGAATCCATGAGCAGGCAAGAGACAA
