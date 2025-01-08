@@ -27,7 +27,7 @@ if [ ! -f "Mapped_Data/hisat2_out/""$file2"".bam" ]; then
 	
 	module load HISAT2/2.2.1-gompi-2022a
 	module load SAMtools/1.16.1-GCC-11.3.0
-	hisat2 -p 4 --dta -x /scratch/tms51355/Taylor2024/singletube_NTS1/maize_tran -U "Mapped_Data/hisat2_out/""$file2"".fastq.gz" | samtools view -bS -> "Mapped_Data/hisat2_out/""$file2""_unsorted.bam"
+	hisat2 -p 4 --dta -x /scratch/tms51355/Taylor2024/NTS1/maize_tran -U "Mapped_Data/hisat2_out/""$file2"".fastq.gz" | samtools view -bS -> "Mapped_Data/hisat2_out/""$file2""_unsorted.bam"
 	
 	module load SAMtools/1.16.1-GCC-11.3.0
 	samtools sort -@ 8 "Mapped_Data/hisat2_out/""$file2""_unsorted.bam" -o "Mapped_Data/hisat2_out/""$file2"".bam"
