@@ -11,6 +11,7 @@
 #SBATCH --mail-user=taylor.scroggs@uga.edu
 #SBATCH --export=NONE
 
+cd /scratch/tms51355/Taylor2024/singletube_NTS1
 
 mkdir "Mapped_Data/stringtie_out"
 
