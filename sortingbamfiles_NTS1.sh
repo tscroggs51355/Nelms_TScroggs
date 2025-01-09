@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=sortingbamfiles  # Job name
 #SBATCH --partition=batch              # Partition (queue) name, i.e., highmem_p
-#SBATCH --ntasks=1                          # Run a single task
-#SBATCH --cpus-per-task=28                  # Number of CPU cores per task
+#SBATCH --ntasks=8                          # Run a single task
+#SBATCH --cpus-per-task=4                 # Number of CPU cores per task
 #SBATCH --mem=60gb                       # Job memory request
 #SBATCH --time=72:00:00                     # Time limit hrs:min:sec
 #SBATCH --output=trim_out         # Standard output log
