@@ -11,11 +11,27 @@
 #SBATCH --mail-user=taylor.scroggs@uga.edu   # Where to send mail
 #SBATCH --export=NONE                       # do not load any env variables to compute node
 
-module load SAMtools/1.16.1-GCC-11.3.0
-for file in Mapped_Data/hisat2_out/*_unsorted.bam
+cd /scratch/tms51355/Taylor2024/singletube_NTS1
+
+mkdir "Mapped_Data/hisat2_out"
+
+
+for file in "Mapped_Data/demultiplexed/"*s.fastq*
 do
-    base_name="${file%_unsorted.bam}"
-    
-    samtools sort -@ 8 "$file" -o "${base_name}.bam"
-    
+	file2="${file:26:-9}"
+
+if [ ! -f "Mapped_Data/hisat2_out/""$file2"".bam" ]; then
+
+	module load fastp/0.23.2-GCC-11.2.0
+	fastp -w 4 -i "$file" -o "Mapped_Data/hisat2_out/""$file2"".fastq.gz" -y -x -3 -a AAAAAAAAAAAA
+	
+	module load HISAT2/2.2.1-gompi-2022aq4
+	module load SAMtools/1.16.1-GCC-11.3.0
+	hisat2 -p 4 --dta -x /scratch/tms51355/Taylor2024/singletube_NTS1/maize_tran -U "Mapped_Data/hisat2_out/""$file2"".fastq.gz" | samtools view -bS -> "Mapped_Data/hisat2_out/""$file2""_unsorted.bam"
+	
+	
+	samtools sort -@ 4 "Mapped_Data/hisat2_out/""$file2""_unsorted.bam" -o "Mapped_Data/hisat2_out/""$file2"".bam"
+	
+	
+fi
 done
