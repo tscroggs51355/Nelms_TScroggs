@@ -3,7 +3,7 @@
 #SBATCH --partition=batch
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=100gb
+#SBATCH --mem=75gb
 #SBATCH --time=72:00:00
 #SBATCH --output=NTS1_stringtie2.%j.out
 #SBATCH --error=NTS1_stringtie2.%j.err
