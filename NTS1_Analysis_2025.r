@@ -140,6 +140,7 @@ The following have been reloaded with a version change:
 
 
 # Step 3: Stringtie 
+
 #!/bin/bash
 #SBATCH --job-name=stringtie2_out
 #SBATCH --partition=batch
@@ -164,17 +165,19 @@ done
 
 # Step 4: Stringtie Merge 
 #!/bin/bash
-#SBATCH --job-name=stringtie2_merge
+#SBATCH --job-name=stringtie2_out
 #SBATCH --partition=batch
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=50gb
+#SBATCH --mem=70gb
 #SBATCH --time=72:00:00
-#SBATCH --output=stringtie2merge.%j.out
-#SBATCH --error=stringtie2merge.%j.err
+#SBATCH --output=Merge_NTS1_stringtie2.%j.out
+#SBATCH --error=Merge_NTS1_stringtie2.%j.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=taylor.scroggs@uga.edu
 #SBATCH --export=NONE
+
+cd /scratch/tms51355/Taylor2024/singletube_NTS1
 
 cd $SLURM_SUBMIT_DIR
 ls -1 "Mapped_Data/stringtie_out/"*.gtf | gawk '{print $0}' > mergelist.txt
@@ -183,5 +186,93 @@ ls -1 "Mapped_Data/stringtie_out/"*.gtf | gawk '{print $0}' > mergelist.txt
 module load StringTie/2.2.1-GCC-11.2.0
 
 # Merge GTF files
-stringtie --merge -p 4 -G /scratch/tms51355/Taylor2024/August_2024_Sequencing_T/Zm-B73-REFERENCE-NAM-5.0_Zm00001eb.1.gff3 -o "/scratch/tms51355/Taylor2024/August_2024_Sequencing_T/Mapped_Data/stringtie_out/stringtie_merge
-d.gtf" mergelist.txt
+stringtie --merge -p 4 -G /scratch/tms51355/Taylor2024/singletube_NTS1/Zm-B73-REFERENCE-NAM-5.0_Zm00001eb.1.gff3 -o "Mapped_Data/stringtie_out/stringtie_merged.gtf" mergelist.txt
+
+****** error thrown during stringtie merge: 
+(base) tms51355@c4-20 NTS1$ more Merge_NTS1_stringtie2.34178062.err 
+Error: no transcripts were found in input file Mapped_Data/stringtie_out/4A_NTS1_S21_L002_65s.gtf
+(base) tms51355@c4-20 NTS1$ cd Mapped_Data/
+(base) tms51355@c4-20 Mapped_Data$ cd stringtie_out/
+(base) tms51355@c4-20 stringtie_out$ mv 4A_NTS1_S21_L002_65s.gtf GTF/
+
+CELSeq Primers: 
+1A: CELSeq primers 9s - 96s 
+2A: CELSeq primers 9s - 96s 
+3A: CELSeq primers 1s - 88s 
+4A: CELSeq primers 1s - 88s 
+*** SEE ERROR MESSAGE ABOVE for information on 4A 65s 
+
+
+#### Moved the following to a directory in stringtieout/GTF 
+
+1A CELSEQ Primers 1s - 8s 
+2A CELSEQ Primers 2s - 8s 
+3A CELSEQ Primers 89s- 96s 
+4A CELSEQ Primers 89s - 96s 
+
+
+# Step 5: FeatureCounts 
+
+#!/bin/bash
+#SBATCH --job-name=featurecounts_NTS1
+#SBATCH --partition=batch
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=70gb
+#SBATCH --time=72:00:00
+#SBATCH --output=FeatureCounts_NTS1_stringtie2.%j.out
+#SBATCH --error=FeatureCounts_NTS1_stringtie2.%j.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=taylor.scroggs@uga.edu
+#SBATCH --export=NONE
+
+CONDA_BASE=$(conda info --base)
+source ${CONDA_BASE}/etc/profile.d/conda.sh
+conda activate subread-env
+
+# Loop through each BAM file in the directory
+for bam_file in /scratch/tms51355/Taylor2024/NTS1/Mapped_Data/hisat2_out/*.bam; do
+    # Get the filename without extension
+    filename=$(basename -- "$bam_file")
+    filename_no_ext="${filename%.*}"
+
+    # Run featureCounts for each BAM file
+    featureCounts -T 4 -s 1 -a "/scratch/tms51355/Taylor2024/NTS1/Mapped_Data/stringtie_out/stringtie_merged.gtf" \
+        -o "/scratch/tms51355/Taylor2024/NTS1/Mapped_Data/stringtie_out/${filename_no_ext}_read_counts.tab" \
+        --readExtension5 500 -R BAM "$bam_file"
+done
+
+## Step 6: UMI COUNTS 
+
+#!/bin/bash
+#SBATCH --job-name=UMICounts_singletubeNTS1
+#SBATCH --partition=batch
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=70gb
+#SBATCH --time=72:00:00
+#SBATCH --output=UMICounts_singletubeNTS1_stringtie2.%j.out
+#SBATCH --error=UMICounts_singletubeNTS1_stringtie2.%j.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=taylor.scroggs@uga.edu
+#SBATCH --export=NONE
+
+
+cd /scratch/tms51355/Taylor2024/singletube_NTS1
+mkdir "Mapped_Data/bams"
+mkdir "Mapped_Data/UMIcounts"
+
+for file in "Mapped_Data/stringtie_out/"*.bam
+do
+    file2="${file:26:-18}"
+    if [ ! -f "Mapped_Data/UMIcounts/${file2}.tsv" ]; then
+
+        module load SAMtools/1.16.1-GCC-11.3.0
+        samtools sort -@ 8 "$file" -o "Mapped_Data/bams/$file2"
+        samtools index "Mapped_Data/bams/$file2"
+
+        module load UMI-tools/1.1.2-foss-2022a-Python-3.10.4
+        umi_tools count --per-gene --gene-tag=XT --assigned-status-tag=XS -I "Mapped_Data/bams/$file2" -S "Mapped_Data/UMIcounts/${file2}.tsv"
+        # rm "$file"
+    fi
+done
