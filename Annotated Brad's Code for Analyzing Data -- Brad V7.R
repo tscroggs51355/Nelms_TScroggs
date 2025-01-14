@@ -12,7 +12,7 @@ colnames(A) = files
 for (f in files) {
 	A[,f] = A0[[f]][match(gn,rownames(A0[[f]])),1]
 }
-colnames(A) = sub('TG1-1_','',sub('_S.+L004_dT-', '_', sub('.tsv', '', files)))
+colnames(A) = sub('NTS1_','',sub('_S.+L002_dT-', '_', sub('.tsv', '', files)))
 A[is.na(A)] = 0
 A = A[rowSums(A) > 0,]
 #save(A, file = 'TG1-1 repeat.rda')
@@ -26,13 +26,26 @@ A = A[rowSums(A) > 0,]
 
 ########################################################################
 
+convertMatrixtoPlate = function(xx) {
+	xx = matrix(xx, ncol = 24)
+	rownames(xx) = LETTERS[1:16]
+	colnames(xx) = 1:24
+	return
+}
+
 LayoutBC = rep(rep(paste('Tube',1:4,sep=''), each = 32), 3)
+matrix(LayoutBC, nrow = 24)[1:5,1:5]
+matrix(LayoutBC,)
+sub('[AB]_NTS.+_', '_', sub('.bam.+','',colnames(A)))
+
+convertMatrixtoPlate(LayoutBC)
+
 LayoutBC[seq(1,384,2)] = paste(LayoutBC[seq(1,384,2)], '_', c(rep(1:16, 4), rep(1:16 + 16*2, 4), rep(1:16 + 16*4, 4)), 's', sep = '')
 LayoutBC[seq(2,384,2)] = paste(LayoutBC[seq(2,384,2)], '_', c(rep(1:16 + 16, 4), rep(1:16 + 16*3, 4), rep(1:16 + 16*5, 4)), 's', sep = '')
 LayoutPlate = paste(rep(LETTERS[1:16], 24), 0, rep(1:24, each = 16), sep = '')
 LayoutPlate = unlist(lapply(strsplit(LayoutPlate, ''), function(xx) { paste(xx[1], xx[length(xx) - 1], xx[length(xx)], sep = '') }))
 names(LayoutPlate) = LayoutPlate[384:1]
-load('2022.rda')
+
 
 LayoutBC67 = rep(NA,384)
 LayoutBC67[seq(2,384,2)[rep(rep(c(F,T), each = 8), 8)]] = paste(rep(c('Tube7','Tube6'), each = 48), '_', rep(1:48, 2), 's', sep = '')

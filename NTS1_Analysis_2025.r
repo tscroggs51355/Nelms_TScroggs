@@ -278,6 +278,9 @@ do
 done
 
 ###################
+
+Now shifting into R Studio for analysis, data used singletube_NTS1
+
 C:\Users\taylo\Desktop\2025_Nelms\singletube_NTS1`
 
 setwd("C:/Users/taylo/Desktop/2025_Nelms/singletube_NTS1`/")
@@ -338,4 +341,38 @@ logTPM = t(scale(t(B4)))
    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
   14142   15873   16506   16458   17358   18271
 
-Heatmap(logTPM, show_row_names = F, row_km = 3)
+library(ComplexHeatmap)
+cor_matrix = cor(B4, method = "pearson")
+Heatmap(cor_matrix)
+
+
+setwd("C:/Users/taylo/Desktop/2025_Nelms/")
+TFInfo = read.csv("NTS1_Geneinfo.csv")
+TFName = read.csv("GeneNames_NTS1.csv")
+TFInformation <- merge(TFName, TFInfo[, c("Gene.model", "Library.plate", "Well")], 
+                   by.x = "v3", by.y = "Gene.model", all.x = TRUE)
+
+GeneInfo <- TFInformation[-c(163, 164), ]
+dim(GeneInfo)
+
+
+#### NTS1 Samples 
+
+setwd("C:/Users/taylo/Desktop/2025_Nelms/NTS1")
+
+files = dir('Mapped_Data/UMIcounts')
+A0 = list()
+for (f in files) {
+	A0[[f]] = read.table(paste('Mapped_Data/UMIcounts/', f, sep = ''), sep = '\t', header=T, row.names=1)
+}
+
+gn = unique(unlist(lapply(A0, rownames)))
+A = matrix(NA, nrow = length(gn), ncol = length(files))
+rownames(A) = gn
+colnames(A) = files
+for (f in files) {
+	A[,f] = A0[[f]][match(gn,rownames(A0[[f]])),1]
+}
+colnames(A) = sub('NTS1_','',sub('_S.+L004_dT-', '_', sub('.tsv', '', files)))
+A[is.na(A)] = 0
+A = A[rowSums(A) > 0,]
