@@ -1,0 +1,2 @@
+git pull
+cd /home/tms51355/Nelms_TScroggs/Taylor2025
