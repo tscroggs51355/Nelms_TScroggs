@@ -73,8 +73,7 @@ reord = match(LayoutBC, colnames(A))
 
 library(ComplexHeatmap)
 svg('UMIheatmap.svg', width = 8, height =5)
-Heatmap(
-  head(log10(convertMatrixtoPlate(colSums(A,na.rm=T)[reord])), cluster_columns = F, cluster_rows = F))
+Heatmap(log10(convertMatrixtoPlate(colSums(A,na.rm=T)[reord])), cluster_columns = F, cluster_rows = F)
 dev.off()
 
 pseudocount = 100
@@ -96,4 +95,4 @@ summary(colSums(A > 0))
       5    1609    7828    6829   10383   15000
 
 
- save(A, file = 'NTS1_UMICounts.rda')
+

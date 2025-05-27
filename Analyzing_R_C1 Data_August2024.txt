@@ -381,6 +381,10 @@ rownames(combined_pvalues) = rownames(R_control)
 
 X2 = -2*rowSums(log(combined_pvalues))
 combined_pvalues$p_pool = pchisq(X2, 2*ncol(combined_pvalues), lower.tail=F) + dchisq(X2,2*3)
+Pooled_pvalue <- combined_pvalues$p_pool
+Adjusted_pvalue <- p.adjust(Pooled_pvalue, method = "holm") 
+significant_adjustedpvalue <- sum(Adjusted_pvalue <= 0.05, na.rm = TRUE)
+significant_adjustedpvalue
 
 #Doublecheck whether dchisq is appropriate here before publication, have brad double check 
 
