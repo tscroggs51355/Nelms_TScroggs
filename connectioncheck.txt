@@ -1,0 +1,4 @@
+cd /home/tms51355/github/Nelms_TScroggs 
+
+Data in /scratch/tms51355/Taylor2025
+
