@@ -22,7 +22,9 @@ for bam_file in /scratch/tms51355/Taylor2025/TS_March2025/Mapped_Data/hisat2_out
     filename_no_ext="${filename%.*}"
 
     # Run featureCounts for each BAM file
-    featureCounts -T 4 -s 1 -a "/scratch/tms51355/Taylor2025/TS_March2025/Mapped_Data/stringtie_out/stringtie_merged.gtf" \
-        -o "/scratch/tms51355/Taylor2025/TS_March2025/Mapped_Data/stringtie_out/${filename_no_ext}_read_counts.tab" \
-        --readExtension5 500 -R BAM "$bam_file"
+   featureCounts -T 4 -s 1 \
+    -a /scratch/tms51355/Taylor2025/TS_March2025/Mapped_Data/stringtie_out/stringtie_merged.gtf \
+    -o /scratch/tms51355/Taylor2025/TS_March2025/Mapped_Data/stringtie_out/all_samples_read_counts.tab \
+    --readExtension5 500 -R BAM \
+    /scratch/tms51355/Taylor2025/TS_March2025/Mapped_Data/hisat2_out/*.bam
 done
