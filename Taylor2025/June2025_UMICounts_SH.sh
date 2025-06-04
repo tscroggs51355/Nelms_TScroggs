@@ -5,8 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=70gb
 #SBATCH --time=72:00:00
-#SBATCH --output=UMICounts_singletubeNTS1_stringtie2.%j.out
-#SBATCH --error=UMICounts_singletubeNTS1_stringtie2.%j.err
+#SBATCH --output=UMICounts_June2025Seq_stringtie2.%j.out
+#SBATCH --error=UMICounts_June2025Seq_stringtie2.%j.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=taylor.scroggs@uga.edu
 #SBATCH --export=NONE
