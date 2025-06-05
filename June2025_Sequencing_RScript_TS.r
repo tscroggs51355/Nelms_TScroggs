@@ -23,6 +23,7 @@ for (f in files) {
 
 colnames(A) <- gsub("^Justin_|\\.bam\\.tsv$", "", colnames(A))
 colnames(A) # just check what everything is 
+
 A[is.na(A)] = 0
 A = A[rowSums(A) > 0,]
 rownames(A) = annots[rownames(A)]
@@ -39,6 +40,29 @@ for (g in unique(rownames(A)[duplicated(rownames(A))])) {
 }
 
 dim(A)
+## Run 6/5/2025 1:13 to here - 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 pseudocount = 100
 B2 = A[,colSums(A) >= 5000]
@@ -93,31 +117,7 @@ colnames(reads) <- sub("\\.bam$", "", colnames(reads))
 ## Getting UMI Counts 
 
 
-> colSums(A)
-DP1_10_S2_1s  FP2_5_S4_1s   STP1_S1_1s  STP1_S1_81s  STP1_S1_82s  STP1_S1_83s
-      375559       164155       260025       110773       237024       441743
- STP1_S1_84s  STP1_S1_85s  STP1_S1_86s  STP1_S1_87s  STP1_S1_88s  STP1_S1_89s
-      480595         3265       294591        94528       174993       121693
- STP1_S1_90s   STP2_S3_1s  STP2_S3_83s  STP2_S3_84s  STP2_S3_85s  STP2_S3_86s
-      304104       254461        63591        61218         2193        57737 
- STP2_S3_87s  STP2_S3_88s  STP2_S3_89s  STP2_S3_90s  STP2_S3_91s  STP2_S3_92s
-       44908        51074        46556        90399       162870       112780
- STP2_S3_93s  STP2_S3_94s  STP2_S3_95s
-      208857        63402        54717
 
-      > reads[1,]
-         DP1_10_S2_1s FP2_5_S4_1s STP1_S1_1s STP1_S1_81s STP1_S1_82s
-Assigned       621473      292374     512935      228407      473836
-         STP1_S1_83s STP1_S1_84s STP1_S1_85s STP1_S1_86s STP1_S1_87s
-Assigned      850919      945296        6673      614999      187724
-         STP1_S1_88s STP1_S1_89s STP1_S1_90s STP2_S3_1s STP2_S3_81s STP2_S3_82s
-Assigned      354284      248507      613719     970376      359588      290450
-         STP2_S3_83s STP2_S3_84s STP2_S3_85s STP2_S3_86s STP2_S3_87s
-Assigned      245304      241152        3233      237895      164449
-         STP2_S3_88s STP2_S3_89s STP2_S3_90s STP2_S3_91s STP2_S3_92s
-Assigned      211914      201195      385730      668429      488880
-         STP2_S3_93s STP2_S3_94s STP2_S3_95s
-Assigned      897867      269600      232112
 
 RperU = (reads[1,])/(colSums(A))
 
