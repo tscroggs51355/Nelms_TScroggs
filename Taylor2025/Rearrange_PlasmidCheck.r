@@ -77,3 +77,45 @@ final_data_pUbSplice <- do.call(rbind, data_list_pUbSplice)
 
 # Save as CSV
 write.csv(final_data_pUbSplice, "C:/Users/taylo/Desktop/TS_March2025/Mapped_Data/pUbSplice_individual.csv", row.names = FALSE)
+
+### NTS1 
+text_files <- list.files("C:/Users/taylo/Desktop/June2025_Sequencing/NTS1_NTS1_1", pattern = "\\.txt$", full.names = TRUE)
+
+data_list <- lapply(text_files, function(file) {
+    sample_name <- sub("\\.txt$", "", basename(file))  
+
+    if (file.info(file)$size > 0) {  
+        df <- read.table(file, header = FALSE, col.names = c("Count", "Sequence"))
+        df$Sample <- sample_name
+    } else {
+        df <- data.frame(Count = NA, Sequence = NA, Sample = sample_name)  
+    }
+
+    return(df)  
+})  
+final_data <- do.call(rbind, data_list)  
+
+write.csv(final_data, "C:/Users/taylo/Desktop/TS_March2025/Mapped_Data/GGGTGGGCGCG_NTS1_NTS1_1.csv", row.names = FALSE)
+
+
+### SingleTubeNTS1-NTS1-1 
+
+C:\Users\taylo\Desktop\June2025_Sequencing\singletube_NTS1-NTS1-1
+text_files <- list.files("C:/Users/taylo/Desktop/June2025_Sequencing/singletube_NTS1-NTS1-1", pattern = "\\.txt$", full.names = TRUE)
+
+data_list <- lapply(text_files, function(file) {
+    sample_name <- sub("\\.txt$", "", basename(file))  
+
+    if (file.info(file)$size > 0) {  
+        df <- read.table(file, header = FALSE, col.names = c("Count", "Sequence"))
+        df$Sample <- sample_name
+    } else {
+        df <- data.frame(Count = NA, Sequence = NA, Sample = sample_name)  
+    }
+
+    return(df)  
+})  
+final_data <- do.call(rbind, data_list)  
+
+write.csv(final_data, "C:/Users/taylo/Desktop/TS_March2025/Mapped_Data/GGGTGGGCGCG_singtube_NTS1_NTS1_1.csv", row.names = FALSE)
+
