@@ -17,8 +17,7 @@ for fastq_file in filtered/*.fastq.gz; do
 
     output_file="filtered/${sample_name}_pUbSplice.txt"
 
-  zcat "$fastq_file" | sed -n '2~4p' | head -n 100000 | grep "CCGCCACTCCACCGGCGGCATGGACGAGCTGTACAAGTGAGGGTGGGCGC" | wc -l
+  zcat "$fastq_file" | sed -n '2~4p' | head -n 100000 | grep "TCCACCCGTCGGCACCTCCGCTTCAAGGTCGACTCTAGAGGATCCCCTCG" | wc -l
 done
 
 
-zcat "$fastq_file" | sed -n '2~4p' | head -n 100000 | grep "CCGCCACTCCACCGGCGGCATGGACGAGCTGTACAAGTGAGGGTGGGCGC" | wc -l 
