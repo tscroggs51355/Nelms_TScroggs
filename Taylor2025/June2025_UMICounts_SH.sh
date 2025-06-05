@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=UMICounts_singletubeNTS1
+#SBATCH --job-name=UMICounts_June2025Sequencing
 #SBATCH --partition=batch
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
