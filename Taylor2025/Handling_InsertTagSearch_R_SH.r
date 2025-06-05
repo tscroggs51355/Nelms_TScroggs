@@ -119,3 +119,29 @@ final_data <- do.call(rbind, data_list)
 
 write.csv(final_data, "C:/Users/taylo/Desktop/TS_March2025/Mapped_Data/GGGTGGGCGCG_singtube_NTS1_NTS1_1.csv", row.names = FALSE)
 
+### pUbSplice Check - TS_March2025
+
+setwd("C:/Users/taylo/Desktop/TS_March2025/Mapped_Data/filtered")
+
+filtered = "C:/Users/taylo/Desktop/TS_March2025/Mapped_Data/filtered"
+
+text_files_pUbSplice <- list.files(filtered, pattern = "_pUbSplice\\.txt$", full.names = TRUE)
+
+data_list_pUbSplice <- lapply(text_files_pUbSplice, function(file) {
+    sample_name <- gsub("_pUNos.txt", "", basename(file))
+
+    # Check if file is empty
+    if (file.info(file)$size > 0) {  
+        df <- read.table(file, header = FALSE, col.names = c("Count", "Sequence"))
+        df$Sample <- sample_name
+    } else {
+        df <- data.frame(Count = NA, Sequence = NA, Sample = sample_name)  # Assign NA values
+    }
+    
+    return(df)
+})
+
+final_data_pUbSplice <- do.call(rbind, data_list_pUbSplice)
+
+# Save as CSV
+write.csv(final_data_pUbSplice, "C:/Users/taylo/Desktop/TS_March2025/Mapped_Data/pUbSplice_individual.csv", row.names = FALSE)
