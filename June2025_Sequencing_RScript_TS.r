@@ -40,68 +40,15 @@ for (g in unique(rownames(A)[duplicated(rownames(A))])) {
 }
 
 dim(A)
-## Run 6/5/2025 1:13 to here - 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-pseudocount = 100
-B2 = A[,colSums(A) >= 5000]
-B3 = log(sweep(B2,2,colSums(B2),'/')*10^6 + pseudocount, 10)
-B4 = B3[rowSums(B2 >= 10) >= 2,]
-logTPM = t(scale(t(B4)))
-131/136 passed QC 
-
-SubsetColnames <- setdiff(colnames(A), colnames(B4))
-print(SubsetColnames)
-[1] "T384-1_34s" "T384-1_40s" "T384-1_6s"  "T384-2_15s" "T384-2_25s"
-
 
 #########################################################
-summary(colSums(A))
+> summary(colSums(A))
    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-    961   23208   39590   46931   59655  383608
+   2478   65092  120211  163502  251935  49473
 
- summary(colSums(A > 0))
-   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-    583    3918    4469    4689    5513   15875
-
-#########################################################
-
-
-library(ComplexHeatmap)
-
-CorrelationMatrixData <- B4[, !colnames(B4) %in% c("T96-1_1s", "T384-1_2s", "T96-1_2s")]
-cor_matrix = cor(CorrelationMatrixData, method = "pearson")
-Heatmap(cor_matrix)
-svg("CorrelationHeatmap_TS_March2025.svg", width = 24, height = 24)
-Heatmap(cor_matrix)
-dev.off()
-
-#Removed the following after plotting initially, because they were completeley driving the correlation 
-#T96-1_1S, T384-1_2s, T96-1_2s 
-
-
-
+>  summary(colSums(A > 0))
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+   1132    9220   10903   10972   13886   15910
 ####
 
 Getting Reads per UMI Calculation from Summary Files 
@@ -111,16 +58,8 @@ reads <- reads[, !grepl("_unsorted\\.bam$", colnames(reads))]
 colnames(reads) <- sub("^Mapped_Data\\.hisat2_out\\.Justin_", "", colnames(reads))
 colnames(reads) <- sub("\\.bam$", "", colnames(reads))
 
-
-
-
 ## Getting UMI Counts 
-
-
-
-
 RperU = (reads[1,])/(colSums(A))
-
-
 write.csv(RperU, "ReadsperUMICalculation_June2025Sequencing.csv")
 
+## Run 6/5/2025 1:13 to here - 
