@@ -17,9 +17,5 @@ for fastq_file in filtered/*.fastq.gz; do
 
     output_file="filtered/${sample_name}_pUbUnspliced5.txt"
 
-    zcat "$fastq_file" | sed -n '2~4p' | grep "TCCACCCGTCGGCACCTCCGCTTCAAGGTACGCCGCTCGTCCTCCCCCCC" | \
-        sed 's/TCCACCCGTCGGCACCTCCGCTTCAAGGTACGCCGCTCGTCCTCCCCCCC.*//' | \
-        grep -E '^.{30,}$' | head -n 1000 | awk '{print substr($0, length($0) - 30 + 1)}' | \
-        sort | uniq -c | sort -nr > "$output_file"
+  zcat "$fastq_file" | sed -n '2~4p' | head -n 100000 | grep "TCCACCCGTCGGCACCTCCGCTTCAAGGTACGCCGCTCGTCCTCCCCCCC" | wc -l
 done
-
