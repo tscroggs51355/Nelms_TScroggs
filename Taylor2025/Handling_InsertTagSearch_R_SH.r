@@ -98,6 +98,17 @@ final_data <- do.call(rbind, data_list)
 write.csv(final_data, "C:/Users/taylo/Desktop/TS_March2025/Mapped_Data/GGGTGGGCGCG_NTS1_NTS1_1.csv", row.names = FALSE)
 
 
+df_wide <- reshape(final_data, 
+                   idvar = "Sequence", 
+                   timevar = "Sample", 
+                   direction = "wide")
+
+colnames(df_wide) <- gsub("Count.", "", colnames(df_wide)) 
+
+head(df_wide)
+
+write.csv(df_wide, "C:/Users/taylo/Desktop/TS_March2025/Mapped_Data/GGGTGGGCGCG_NTS1_NTS1_1_Wide.csv", row.names = FALSE)
+
 ### SingleTubeNTS1-NTS1-1 
 
 C:\Users\taylo\Desktop\June2025_Sequencing\singletube_NTS1-NTS1-1
@@ -118,6 +129,17 @@ data_list <- lapply(text_files, function(file) {
 final_data <- do.call(rbind, data_list)  
 
 write.csv(final_data, "C:/Users/taylo/Desktop/TS_March2025/Mapped_Data/GGGTGGGCGCG_singtube_NTS1_NTS1_1.csv", row.names = FALSE)
+
+df_wide <- reshape(final_data, 
+                   idvar = "Sequence", 
+                   timevar = "Sample", 
+                   direction = "wide")
+
+colnames(df_wide) <- gsub("Count.", "", colnames(df_wide)) 
+
+head(df_wide)
+
+write.csv(df_wide, "C:/Users/taylo/Desktop/TS_March2025/Mapped_Data/WGGGTGGGCGCG_singtube_NTS1_NTS1_1_Wide.csv", row.names = FALSE)
 
 ### pUbSplice Check - TS_March2025
 
