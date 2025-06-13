@@ -12,14 +12,14 @@
 #SBATCH --export=NONE
 
 
-output_csv="filtered/pUbUnspliced3_counts.csv"
+output_csv="demultiplexed/pUbUnspliced3_counts.csv"
 
 echo "Sample,Count" > "$output_csv"
 
-for fastq_file in filtered/*.fastq.gz; do
+for fastq_file in demultiplexed/*.fastq.gz; do
     sample_name=$(basename "$fastq_file" .fastq.gz)
 
-    count=$(zcat "$fastq_file" | sed -n '2~4p' | head -n 100000 | grep "CCCTGTTGTTTGGTGTTACTTCTGCAGGTCGACTCTAGAGGATCCCCTCG" | wc -l)
+    count=$(zcat "$fastq_file" | sed -n '2~4p' | head -n 500000 | grep "CCCTGTTGTTTGGTGTTACTTCTGCAGGTCGACTCTAGAGGATCCCCTCG" | wc -l)
 
     echo "$sample_name,$count" >> "$output_csv"
 done

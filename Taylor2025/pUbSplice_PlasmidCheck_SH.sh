@@ -11,14 +11,14 @@
 #SBATCH --mail-user=taylor.scroggs@uga.edu
 #SBATCH --export=NONE
 
-output_csv="filtered/pUbSplice_counts.csv"
+output_csv="demultiplexed/pUbSplice_counts.csv"
 
 echo "Sample,Count" > "$output_csv"
 
-for fastq_file in filtered/*.fastq.gz; do
+for fastq_file in demultiplexed/*.fastq.gz; do
     sample_name=$(basename "$fastq_file" .fastq.gz)
 
-    count=$(zcat "$fastq_file" | sed -n '2~4p' | head -n 100000 | grep "TCCACCCGTCGGCACCTCCGCTTCAAGGTCGACTCTAGAGGATCCCCTCG" | wc -l)
+    count=$(zcat "$fastq_file" | sed -n '2~4p' | head -n 500000 | grep "TCCACCCGTCGGCACCTCCGCTTCAAGGTCGACTCTAGAGGATCCCCTCG" | wc -l)
 
     echo "$sample_name,$count" >> "$output_csv"
 done
