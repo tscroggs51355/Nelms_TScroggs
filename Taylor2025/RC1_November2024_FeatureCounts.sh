@@ -17,11 +17,7 @@ CONDA_BASE=$(conda info --base)
 source ${CONDA_BASE}/etc/profile.d/conda.sh
 conda activate subread-env
 
-# Loop through each BAM file in the directory
-for gtf_file in /scratch/tms51355/Taylor2024/RC1_Nov2024/Mapped_Data/stringtie_out/*.gtf; do
-    # Get the filename without extension
-    filename=$(basename -- "$gtf_file")
-    filename_no_ext="${filename%.*}"
-
-# Run featureCounts on all BAM files together
-featureCounts -T 6 -s 1 -a "Mapped_Data/stringtie_out/stringtie_merged.gtf" -o "Mapped_Data/stringtie_out/read_counts.tab" --readExtension5 500 -R BAM "Mapped_Data/hisat2_out/"*.bam
+featureCounts -T 6 -s 1 \
+  -a "Mapped_Data/stringtie_out/stringtie_merged.gtf" \
+  -o "Mapped_Data/stringtie_out/read_counts.tab" \
+  --readExtension5 500 -R BAM Mapped_Data/hisat2_out/*.bam
