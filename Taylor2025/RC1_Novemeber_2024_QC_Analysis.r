@@ -21,7 +21,7 @@ for (f in files) {
   A[,f] = A0[[f]][match(gn,rownames(A0[[f]])),1]
 }
 
-## colnames(A) <- gsub("^Justin_|\\.bam\\.tsv$", "", colnames(A))
+colnames(A) <- gsub(".*_(\\d+s)\\.bam\\.tsv", "\\1", colnames(A))
 colnames(A) # just check what everything is 
 
 A[is.na(A)] = 0
@@ -40,6 +40,129 @@ for (g in unique(rownames(A)[duplicated(rownames(A))])) {
 }
 
 dim(A)
+
+R Alone: 1s - 4s 
+R + Reporter: 5s - 8s 
+R + C1: 9s - 12s 
+C1 Alone: 13s - 16s 
+R + C1 + Reporter: 17s - 20s 
+C1 + Reporter: 21s - 24s 
+Reporter: 25s - 28s 
+mCherry Control: 29s - 32s 
+
+samples <- c("1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s",   # R1 Alone
+             "13s", "14s", "15s", "16s", "21s", "22s", "23s", '24s',      # C1 Alone
+             "9s", "10s", "11s", "12s", "17s", "18s", "19s", "20s",     # R+C1
+             "25s", "26s", "27s", "28s", "29s", "30s", "31s", "32s") # Control
+conditions <- c(rep("R1", 8),       # 8 samples for R
+                rep("C1", 8),     # 7 samples for C1
+                rep("R1+C1", 8),   # 8 samples for R+C1
+                rep("Control", 8)) # 8 samples for Control
+names(conditions) = samples
+colData <- data.frame(
+  condition = factor(conditions, levels = c("R1", "C1", "R1+C1", "Control"))
+)
+
+counts <- A[,samples] ## now re-ordered based on the samples that we gave above 
+counts[is.na(counts)] <- 0 #replaced NA with 0 
+
+pseudocount = 100
+B2 = A[,colSums(A) >= 5000]
+TPM = sweep(B2,2,colSums(B2),'/')*10^6
+B3 = log(TPM + pseudocount, 10)
+logTPM <- t(scale(t(B3)))
+
+
+library(DESeq2)
+rownames(colData) <- samples            
+
+dds <- DESeqDataSetFromMatrix(countData = counts, colData = colData, design = ~ condition)
+dds <- DESeq(dds)
+
+R1_control <- results(dds, contrast = c("condition", "R1", "Control"))
+C1_control <- results(dds, contrast = c("condition", "C1", "Control"))
+R1_C1_control <- results(dds, contrast = c("condition", "R1+C1", "Control"))
+summary (R1_control) 
+summary(C1_control)
+summary(R1_C1_control)
+
+PVal_R1 <- R1_control$pvalue
+PVal_C1 <- C1_control$pvalue
+PVal_R1_C1 <- R1_C1_control$pvalue
+
+combined_pvalues <- data.frame(
+  R1= PVal_R1,
+  C1= PVal_C1,
+  R1_C1= PVal_R1_C1
+)
+rownames(combined_pvalues) = rownames(R1_control)
+X2 = -2*rowSums(log(combined_pvalues))
+combined_pvalues$p_pool = pchisq(X2, 2*ncol(combined_pvalues), lower.tail=F) + dchisq(X2,2*3)
+Pooled_pvalue <- combined_pvalues$p_pool
+Adjusted_pvalue <- p.adjust(Pooled_pvalue, method = "holm") 
+significant_adjustedpvalue <- sum(Adjusted_pvalue <= 0.05, na.rm = TRUE)
+significant_adjustedpvalue
+
+combined_pvalues$padj = p.adjust(combined_pvalues$p_pool, method = "holm") 
+
+combined_pvalues$maxLog2 = apply(cbind(R1_control[,2], C1_control[,2], R1_C1_control[,2]), 1, function(xx) { xx[rank(-abs(xx), ties.method = 'first') == 1] })
+
+combined_pvalues$Significant = (combined_pvalues$padj <= .05) & (abs(combined_pvalues$maxLog2) >= 1)
+combined_pvalues$Significant[is.na(combined_pvalues$Significant)] = FALSE
+
+combined_pvalues = combined_pvalues[order(-combined_pvalues$Significant, combined_pvalues$padj),]
+sigGenes = rownames(combined_pvalues)[combined_pvalues$Significant]
+
+## Figure 3
+
+set.seed(1)
+library(ComplexHeatmap)
+
+valid_samples <- intersect(samples, colnames(logTPM))
+hmMat <- logTPM[
+  which(rank(R1_C1_control$pvalue) <= 100),
+  valid_samples
+]
+
+names(conditions) <- valid_samples
+
+valid_group_labels <- conditions[valid_samples]
+
+
+column_anno <- HeatmapAnnotation(
+  Group = valid_group_labels,
+  col = list(Group = c(
+    "R1"      = "#FF9999",
+    "C1"      = "#99CCFF",
+    "R1+C1"    = "#66FF66",
+    "Control" = "#CCCCCC"
+  )),
+  show_legend = TRUE
+)
+
+
+hm <- Heatmap(
+  hmMat,
+  top_annotation = column_anno,
+  show_row_names = TRUE,
+  clustering_method_rows = "ward.D2",
+  clustering_distance_rows = "euclidean",
+  cluster_columns = FALSE,
+  show_column_names = TRUE
+)
+
+svg("Fig3_HeatmapwithAnnotation_November2024Data.svg", width = 10, height = 20) 
+plot(hm)
+dev.off()
+
+
+
+
+
+
+
+
+
 
 #########################################################
 summary(colSums(A))
