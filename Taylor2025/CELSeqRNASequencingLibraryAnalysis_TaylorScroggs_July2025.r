@@ -86,55 +86,93 @@ write.csv(RperU, "ReadsperUMICalculation_June2025Sequencing.csv")
 ## In this analysis, we want to see how often different parts of the plasmid sequence (spliced vs unspliced) were identified out of the TOTAL
 
 ## pUBSplice 
-output_csv="demultiplexed/pUbSplice_counts.csv"
+output_csv="Mapped_Data/demultiplexed/pUbSplice_counts.csv"
 
 echo "Sample,Count" > "$output_csv"
 
-for fastq_file in demultiplexed/*.fastq.gz; do
+for fastq_file in Mapped_Data/demultiplexed/*.fastq.gz; do
     sample_name=$(basename "$fastq_file" .fastq.gz)
-
     count=$(zcat "$fastq_file" | sed -n '2~4p' | head -n 500000 | grep "TCCACCCGTCGGCACCTCCGCTTCAAGGTCGACTCTAGAGGATCCCCTCG" | wc -l)
 
     echo "$sample_name,$count" >> "$output_csv"
 done
 
 ## pUBUnspliced3 
+#!/bin/bash
+#SBATCH --job-name=pUBUnspliced3
+#SBATCH --partition=batch
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=70gb
+#SBATCH --time=72:00:00
+#SBATCH --output=pUBUnspliced3.%j.out
+#SBATCH --error=pUBUnspliced3.%j.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=taylor.scroggs@uga.edu
+#SBATCH --export=NONE
 
-output_csv="demultiplexed/pUbUnspliced3_counts.csv"
+output_csv="Mapped_Data/demultiplexed/pUbUnspliced3_counts.csv"
 
 echo "Sample,Count" > "$output_csv"
 
-for fastq_file in demultiplexed/*.fastq.gz; do
+for fastq_file in Mapped_Data/demultiplexed/*.fastq.gz; do
     sample_name=$(basename "$fastq_file" .fastq.gz)
-
-    count=$(zcat "$fastq_file" | sed -n '2~4p' | head -n 500000 | grep "CCCTGTTGTTTGGTGTTACTTCTGCAGGTCGACTCTAGAGGATCCCCTCG" | wc -l)
+    
+    count=$(zcat "$fastq_file" \
+        | sed -n '2~4p' \
+        | head -n 500000 \
+        | grep "CCCTGTTGTTTGGTGTTACTTCTGCAGGTCGACTCTAGAGGATCCCCTCG" \
+        | wc -l)
 
     echo "$sample_name,$count" >> "$output_csv"
 done
 
-## pUBUnspliced5 
 
-output_csv="demultiplexed/pUbUnspliced5_counts.csv"
+## pUBUnspliced5 
+#!/bin/bash
+#SBATCH --job-name=pUBUnspliced5
+#SBATCH --partition=batch
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=70gb
+#SBATCH --time=72:00:00
+#SBATCH --output=pUBUnspliced5.%j.out
+#SBATCH --error=pUBUnspliced5.%j.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=taylor.scroggs@uga.edu
+#SBATCH --export=NONE
+
+output_csv="Mapped_Data/demultiplexed/pUbUnspliced5_counts.csv"
 
 echo "Sample,Count" > "$output_csv"
 
-for fastq_file in demultiplexed/*.fastq.gz; do
+for fastq_file in Mapped_Data/demultiplexed/*.fastq.gz; do
     sample_name=$(basename "$fastq_file" .fastq.gz)
-
     count=$(zcat "$fastq_file" | sed -n '2~4p' | head -n 500000 | grep "TCCACCCGTCGGCACCTCCGCTTCAAGGTACGCCGCTCGTCCTCCCCCCC" | wc -l)
 
     echo "$sample_name,$count" >> "$output_csv"
 done
 
 ## Insert Tag 
+#!/bin/bash
+#SBATCH --job-name=InsertTag
+#SBATCH --partition=batch
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=70gb
+#SBATCH --time=72:00:00
+#SBATCH --output=InsertTag.%j.out
+#SBATCH --error=InsertTag.%j.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=taylor.scroggs@uga.edu
+#SBATCH --export=NONE
 
-output_csv="demultiplexed/InsertTag_counts.csv"
+output_csv="Mapped_Data/demultiplexed/InsertTag_counts.csv"
 
 echo "Sample,Count" > "$output_csv"
 
-for fastq_file in demultiplexed/*.fastq.gz; do
+for fastq_file in Mapped_Data/demultiplexed/*.fastq.gz; do
     sample_name=$(basename "$fastq_file" .fastq.gz)
-
     count=$(zcat "$fastq_file" | sed -n '2~4p' | head -n 500000 | grep "GGGTGGGCGCG" | wc -l)
 
     echo "$sample_name,$count" >> "$output_csv"
@@ -170,13 +208,26 @@ write.csv(final_data_pUbSplice, "C:/Users/taylo/Desktop/TS_March2025/Mapped_Data
 
 ## Insert Tag Search 
 
+#!/bin/bash
+#SBATCH --job-name=InsertTag
+#SBATCH --partition=batch
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=70gb
+#SBATCH --time=72:00:00
+#SBATCH --output=InsertTag_zcat.%j.out
+#SBATCH --error=InsertTag_zcat.%j.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=taylor.scroggs@uga.edu
+#SBATCH --export=NONE
+
 for fastq_file in Mapped_Data/demultiplexed/*s.fastq.gz; do
 
     sample_name=$(basename "$fastq_file" .fastq.gz)
 
     zcat "$fastq_file" | sed -n '2~4p' | grep GGGTGGGCGCG | sed 's/GGGTGGGCGCG.*//' | \
         grep -E '^.{30,}$' | head -n 1000 | awk '{print substr($0, length($0) - 30 + 1)}' | \
-        sort | uniq -c | sort -nr > "Mapped_Data/demultiplexed//${sample_name}.txt"
+        sort | uniq -c | sort -nr > "Mapped_Data//${sample_name}.txt"
 
 
 done
