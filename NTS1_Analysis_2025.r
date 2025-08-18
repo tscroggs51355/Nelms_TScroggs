@@ -342,8 +342,18 @@ logTPM = t(scale(t(B4)))
   14142   15873   16506   16458   17358   18271
 
 library(ComplexHeatmap)
-cor_matrix = cor(B4, method = "pearson")
-Heatmap(cor_matrix)
+
+cor_matrix <- cor(B4, method = "pearson")
+svg("C:/Users/taylo/Desktop/2025_Nelms/NTS1_NTS1_1_CorrelationHeatmap.svg", width = 12, height = 20)
+
+Heatmap(
+  cor_matrix,
+  show_row_names = FALSE,
+  show_column_names = FALSE,
+  column_title = "NTS1-NTS1-1 Correlation Heatmap"
+)
+
+dev.off()
 
 
 setwd("C:/Users/taylo/Desktop/2025_Nelms/")
