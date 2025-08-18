@@ -17,6 +17,6 @@ mkdir "Mapped_Data/stringtie_out"
 
 for file in "Mapped_Data/hisat2_out/"*s.bam
 do
-        module load StringTie/2.2.1-GCC-11.2.0
+        module load StringTie/3.0.0-GCC-13.3.0
         stringtie -p 6 -G /scratch/tms51355/Taylor2025/July2025Sequencing_NTS2/Zm-B73-REFERENCE-NAM-5.0_Zm00001eb.1.gff3 --rf -o "Mapped_Data/stringtie_out/""${file:22:-4}"".gtf" "$file"
 done
