@@ -1,0 +1,3 @@
+samtools view your_file.bam | head -n 10
+
+samtools view NTS2_NTS2_1_A_18s.bam  | head -n 25 

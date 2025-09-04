@@ -1,5 +1,164 @@
+### NTS5 TF Array 
+setwd("C:/Users/taylo/Desktop/2025_Nelms/August 2025") 
+NTS5_Array <- read.csv("NTS5_Array.csv") 
+Batch2_Synbio <- read.csv("Batch2_Synbio_NTS4.csv")
+Batch3_Synbio <- read.csv("Batch3_Synbio_NTS4.csv")
+Batch4_Synbio <- read.csv("Batch4_Synbio_NTS4.csv")
+
+library(dplyr)
+library(stringr)
+
+all_locations <- bind_rows(
+  NTS2_Array %>% select(SampleID, Library.Plate, Column, Row), 
+  NTS3_Array %>% select(SampleID, Library.Plate, Column, Row), 
+  NTS4_Array_Clean %>% select(SampleID, Library.Plate, Column, Row), 
+  NTS5_Array %>% select(SampleID, Library.Plate, Column, Row))
+
+
+Batch2_Synbio <- left_join(
+  Batch2_Synbio,
+  all_locations,
+  by = "SampleID",
+  suffix = c("", "")
+)
+
+      write.csv(Batch2_Synbio, "Batch2_Synbio_NTS5.csv", row.names = FALSE)
+
+
+Batch3_Synbio <- left_join(
+  Batch3_Synbio,
+  all_locations,
+  by = "SampleID",
+  suffix = c("", "")
+)
+      write.csv(Batch3_Synbio, "Batch3_Synbio_NTS5.csv", row.names = FALSE)
+
+Batch4_Synbio <-left_join(
+  Batch4_Synbio,
+  all_locations,
+  by = "SampleID",
+  suffix = c("", "")
+)
+      write.csv(Batch4_Synbio, "Batch4_Synbio_NTS5.csv", row.names = FALSE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###############################################################################################################################################################################################
 ## Directory for all files 
-setwd("C:/Users/taylo/Desktop/2025_Nelms/June 2025")
+setwd("C:/Users/taylo/Desktop/2025_Nelms/August 2025") 
+
+## NTS4 TF Information 
+library(dplyr)
+library(stringr)
+
+NTS4_Array <- read.csv("NTS4_Array.csv")
+names(NTS4_Array)[names(NTS4_Array) == "Synbio.ID.Batch"] <- "SampleID"
+
+names(Batch4_Synbio)[names(Batch4_Synbio) == "Project.ID"] <- "SampleID"
+names(Batch4_Synbio)[names(Batch4_Synbio) == "Gene.name"] <- "TFomeStockID"
+
+
+Batch2_Synbio <- read.csv("Batch2_Synbio_NTS3.csv")
+Batch3_Synbio <- read.csv("Batch3_Synbio_NTS3.csv")
+Batch4_Synbio <- read.csv("Batch4_Synbio.csv")
+
+names(Batch4_Synbio)[names(Batch4_Synbio) == "Project.ID"] <- "SampleID"
+names(Batch4_Synbio)[names(Batch4_Synbio) == "Gene.name"] <- "TFomeStockID"
+
+combined_synbio <- bind_rows(Batch2_Synbio, Batch3_Synbio, Batch4_Synbio) %>% 
+select(SampleID, TFomeStockID)
+
+combined_synbio_clean <- combined_synbio %>%
+  filter(SampleID != "") %>%
+  distinct(SampleID, .keep_all = TRUE)
+
+NTS4_Array_Clean <- NTS4_Array %>%
+  left_join(combined_synbio_clean, by = "SampleID")
+## write.csv(NTS4_Array_Clean, "NTS4_Array_Clean.csv", row.names = FALSE)
+
+
+
+colnames(NTS3_Array)[colnames(NTS3_Array) == "TFomeStockID.x"] <- "TFomeStockID"
+colnames(Batch2_Synbio)[colnames(Batch2_Synbio) == "Library.plate"] <- "Library.Plate"
+colnames(Batch3_Synbio)[colnames(Batch3_Synbio) == "Library.plate"] <- "Library.Plate"
+
+
+
+setwd("C:/Users/taylo/Desktop/2025_Nelms/June 2025") 
+NTS1_Array <- read.csv("NTS1_Array_Cleaned.csv")
+NTS2_Array <- read.csv("NTS2_Array_clean.csv")
+NTS3_Array <- read.csv("NTS3_Array_clean.csv")
+
+
+
+all_locations <- bind_rows(
+  NTS1_Array %>% select(SampleID, Library.Plate, Column, Row),
+  NTS2_Array %>% select(SampleID, Library.Plate, Column, Row), 
+  NTS3_Array %>% select(SampleID, Library.Plate, Column, Row), 
+  NTS4_Array_Clean %>% select(SampleID, Library.Plate, Column, Row))
+
+
+
+Batch1_Synbio <- Batch1_Synbio %>%
+  left_join(all_locations, by = "SampleID")
+  write.csv(Batch1_Synbio, "Batch1_Synbio_NTS2.csv", row.names = FALSE)
+
+Batch2_Synbio <- left_join(
+  Batch2_Synbio,
+  all_locations,
+  by = "SampleID",
+  suffix = c("", "")
+)
+
+      write.csv(Batch2_Synbio, "Batch2_Synbio_NTS4.csv", row.names = FALSE)
+
+
+Batch3_Synbio <- left_join(
+  Batch3_Synbio,
+  all_locations,
+  by = "SampleID",
+  suffix = c("", "")
+)
+      write.csv(Batch3_Synbio, "Batch3_Synbio_NTS4.csv", row.names = FALSE)
+
+Batch4_Synbio <- Batch4_Synbio[, -((ncol(Batch4_Synbio) - 5):ncol(Batch4_Synbio))]
+Batch4_Synbio <- Batch4_Synbio %>%
+  left_join(NTS4_Array_Clean, by = "SampleID")
+      write.csv(Batch4_Synbio, "Batch4_Synbio_NTS4.csv", row.names = FALSE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+############################################################################################################################
 
 ## NTS2 TF Information 
 NTS2_Array <- read.csv("NTS2_Array.csv")
@@ -11,9 +170,6 @@ NTS2_Array_clean <- NTS2_Array_clean[,c(4,1,2,3)]
 head(NTS2_Array_clean)
 tail(NTS2_Array_clean)
 
-## NTS3 TF Information 
-NTS3_Array_clean <- read.csv("NTS3_Array.csv")
-names(NTS3_Array_clean)[names(NTS3_Array_clean) == "Synbio.ID.Batch"] <- "SampleID"
 
 ## NTS1 TF Information 
 NTS1_Array <- read.csv("September2024_NTS1.csv")
@@ -71,7 +227,7 @@ names(Batch3_Synbio)[names(Batch3_Synbio) == "Sample.ID"] <- "SampleID"
 names(Batch3_Synbio)[names(Batch3_Synbio) == "Gene.Name"] <- "TFomeStockID"
 
 library(dplyr)
-combined_synbio <- bind_rows(Batch1_Synbio, Batch2_Synbio,Batch3_Synbio) %>%
+combined_synbio <- bind_rows(Batch1_Synbio, Batch2_Synbio, Batch2_Synbio_Sub2,Batch3_Synbio) %>%
   select(SampleID, TFomeStockID)
 
 combined_synbio_clean <- combined_synbio %>%
@@ -82,30 +238,22 @@ NTS2_Array_clean <- NTS2_Array_clean %>%
   left_join(combined_synbio_clean, by = "SampleID")
 write.csv(NTS2_Array_clean, "NTS2_Array_clean.csv", row.names = FALSE)
 
-NTS3_Array_clean <- NTS3_Array_clean %>%
-  left_join(combined_synbio_clean, by = "SampleID")
-write.csv(NTS3_Array_clean, "NTS3_Array_clean.csv")
 
 all_locations <- bind_rows(
-  NTS1_Array_clean %>%
-    select(SampleID, Library.plate, Column, Row),
-  NTS2_Array_clean %>%
-    rename(Library.plate = Library.Plate) %>%
-    select(SampleID, Library.plate, Column, Row),
-  NTS3_Array_clean %>%
-    rename(Library.plate = Library.Plate) %>%
+  NTS1_Array_clean %>% select(SampleID, Library.plate, Column, Row),
+  NTS2_Array_clean %>% rename(Library.plate = Library.Plate) %>%
     select(SampleID, Library.plate, Column, Row)
 )
 
 Batch1_Synbio <- Batch1_Synbio %>%
   left_join(all_locations, by = "SampleID")
-  write.csv(Batch1_Synbio, "Batch1_Synbio_NTS3.csv", row.names = FALSE)
+  write.csv(Batch1_Synbio, "Batch1_Synbio_NTS2.csv", row.names = FALSE)
 
 Batch2_Synbio <- Batch2_Synbio %>%
   left_join(all_locations, by = "SampleID")
-      write.csv(Batch2_Synbio, "Batch2_Synbio_NTS3.csv", row.names = FALSE)
+      write.csv(Batch2_Synbio, "Batch2_Synbio_NTS2.csv", row.names = FALSE)
 
 
 Batch3_Synbio <- Batch3_Synbio %>%
   left_join(all_locations, by = "SampleID")
-      write.csv(Batch3_Synbio, "Batch3_Synbio_NTS3.csv", row.names = FALSE)
+      write.csv(Batch3_Synbio, "Batch3_Synbio_NTS2.csv", row.names = FALSE)

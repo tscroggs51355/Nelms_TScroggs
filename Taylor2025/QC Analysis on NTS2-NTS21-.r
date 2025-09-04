@@ -2,12 +2,12 @@
 load("UMI count data.rda")
 "UMI count data.rda"
 ####
-setwd("C:/Users/taylo/Desktop/2025_Nelms/July2025/NTS2_Seq")
-
+setwd("C:/Users/taylo/Desktop/2025_Nelms/August 2025/NTS2_NTS2_1_Sequencing_July_August")
+C:\Users\taylo\Desktop\2025_Nelms\August 2025\NTS2_NTS2_1_Sequencing_July_August
 
 Getting Reads per UMI Calculation from Summary Files 
 reads = read.table('C:/Users/taylo/Desktop/2025_Nelms/July2025/NTS2_Seq/Mapped_Data/stringtie_out/all_samples_read_counts.tab.summary', header=T, sep = '\t', stringsAsFactors=F, row.names=1)
-colnames(reads) <- substr(colnames(reads), 78, nchar(colnames(reads)))
+colnames(reads) <- substr(colnames(reads), 86, nchar(colnames(reads)))
 print(colnames(reads))
 colnames(reads) <- gsub("_S\\d+_L008|\\.bam$", "", colnames(reads))
 
