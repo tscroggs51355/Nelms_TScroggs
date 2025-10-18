@@ -14,7 +14,7 @@ colnames(reads) <- substr(colnames(reads), 78, nchar(colnames(reads)) - 4)
 colnames(reads) <- gsub("_S[0-9]+_L[0-9]+", "", colnames(reads))
 
 
-colnames(reads)[1:192] <- sapply(colnames(reads)[1:192], function(x) substr(x, 10, nchar(x)))
+colnames(reads)[1:192] <- sapply(colnames(reads)[1:192], function(x) substr(x, 9, nchar(x)))
 
 reads_XX= reads
 
@@ -29,10 +29,6 @@ metadata$GeneName <- TFInfo$GeneName[match(metadata$TF, TFInfo$Gene.model)]
 ## remove 89 - 96 barcodes 
 reads_XX <- reads_XX[, !is.na(colnames(reads_XX))]
 
-cols_to_remove <- grep("_8[9]s$|_9[0-6]s$", colnames(reads_XX), value = TRUE)
-
-# Remove those columns
-reads_XX <- reads_XX[ , !(colnames(reads_XX) %in% cols_to_remove)]
 
 
 files = dir('Mapped_Data/UMIcounts')
@@ -105,15 +101,17 @@ RperU = (reads_XX[1,])/(colSums(A2))
 RperU <- as.data.frame(RperU)
 RperU_vec <- as.numeric(RperU["Assigned", ])
 names(RperU_vec) <- colnames(RperU)
+svg("Brad/ReadPerUMI_NTS2_NTS2_1_Barplot.svg", width = 10, height =12)
 barplot(RperU_vec,
         las = 2,              
         col = "hotpink",
         border = NA,
         main = "Reads per UMI",
         ylab = "Reads per UMI",
-        cex.names = 0.7)
-
-write.csv(RperU, "ReadsPerUMI_V5_NTS2_NTS2_1.csv")
+        cex.names = 0.7, 
+        space= 5.0)
+dev.off()
+write.csv(RperU, "Brad/ReadsPerUMI_V5_NTS2_NTS2_1.csv")
 
 
 
@@ -145,13 +143,13 @@ rownames(mat) <- LETTERS[1:16]
 colnames(mat) <- 1:24
 return(mat)
 }
+svg("UMICounts_Heatmap.svg", width = 25, height = 25)
+Heatmap((log10(convertMatrixtoPlate(colSums(A2,na.rm=T)))), cluster_columns = F, cluster_rows = F)
+dev.off()
 
-Heatmap(t(log10(convertMatrixtoPlate(colSums(A2,na.rm=T)))), cluster_columns = F, cluster_rows = F)
 
 
-
-
-##write.csv(A2, "A2_NTS2_NTS2_1.csv")
+##write.csv(A2, "Brad/A2_NTS2_NTS2_1.csv")
 A2 <- A2[!(rownames(A2) %in% unlist(strsplit(TFInfo[,9], ', '))),]
 TPM = sweep(A2, 2, colSums(A2), '/')*10^6
 logTPM = log10(TPM+100)
@@ -236,12 +234,15 @@ hmcols = colorRampPalette(c('#0571b0','#0571b0','#92c5de','#f7f7f7','#f4a582','#
 o1 = seriate(dist(cors^3), method = "OLO")
 
 ## Plotting correlatin of all samples
+svg("Brad/Correlation_AllSamples_NTS2_NTS2_1.svg", width = 30, height = 30)
 hm=Heatmap(cors, col = hmcols, use_raster = T, raster_device = 'png', show_heatmap_legend = T, show_row_names = T, show_column_names = T, cluster_columns = as.dendrogram(o1[[1]]), cluster_rows = as.dendrogram(o1[[1]]))
+dev.off()
 
 ## Plotting correlation of just the controls 
+svg("Brad/Correlation_Controls_NTS2_NTS2_1.svg", width = 30, height = 30)
 control_label <- unique(as.character(controls))
 hm= Heatmap(cors[control_label, control_label], col = hmcols, use_raster = T, raster_device = 'png', show_heatmap_legend = T, show_row_names = T, show_column_names = T, cluster_columns = as.dendrogram(o1[[1]]), cluster_rows = as.dendrogram(o1[[1]]))
-
+dev.off()
 ###############################################################
 ## Plotting Correlation beween the batches 
 ##Batch A Correlation Heatmap 
@@ -306,7 +307,7 @@ g2 <- grid.grabExpr(draw(hm2))
 g3 <- grid.grabExpr(draw(hm3))
 g4 <- grid.grabExpr(draw(hm4))
 
-svg("correlation_batches.svg", width = 25, height = 25)
+svg("Brad/correlation_batches.svg", width = 25, height = 25)
 grid.arrange(g1, g2, g3, g4, ncol = 2)
 dev.off()
 
@@ -360,7 +361,7 @@ hm_final <- Heatmap(
 
 draw(hm_final)
 
-svg('correlationheatmap_withannotation.svg', width = 25, height = 25)
+svg('Brad/correlationheatmap_withannotation.svg', width = 25, height = 25)
 draw(hm_final)
 dev.off()
 
@@ -380,29 +381,27 @@ dev.off()
 
 
 
+convertMatrixtoPlate <- function(xx) {
+  padded <- c(rep(NA, 16), xx, rep(NA, 16))
+  padded <- padded[1:384]  
+  
+  mat <- matrix(padded, nrow = 16)
+  rownames(mat) <- LETTERS[1:16]
+  colnames(mat) <- 1:24
+  return(mat)
+}
 
+Heatmap((convertMatrixtoPlate(log10((colSums(A2))))), cluster_columns = F, cluster_rows = F)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+svg("ReadsperUMI.svg", width = 40,  height = 10) 
+barplot(RperU_df$RperU_matrix, 
+        names.arg = RperU_df$Sample, 
+        col = "pink", 
+        main = "Barplot of RperU_matrix values for each Sample", 
+        xlab = "Sample", 
+        ylab = "ReadsPerUMI", 
+        las = 2)
+        
+dev.off()
 
                    
