@@ -397,93 +397,466 @@ all_GO <- bind_rows(
   })
 )
 
+save(topGO_results, all_GO, file = "GO_analysis.RData")
+
 ## keep only significant GO terms
 sig_GO <- all_GO %>%
   filter(Fishers < 0.05)
 
-GO_frequency <- sig_GO %>%
-  group_by(GO.ID, Term, Ontology) %>%
-  summarise(
-    n_samples = n(),
-    .groups="drop"
-  ) %>%
-  arrange(desc(n_samples))
+library(dplyr)
 
-  library(ggplot2)
+## Create a unique sample identifier
+all_GO <- all_GO %>%
+  mutate(SampleID = paste(Dataset, Sample, sep = "_"))
 
-GO_frequency %>%
-  slice_max(n_samples, n=20) %>%
-  ggplot(aes(reorder(Term, n_samples), n_samples))+
-  geom_col(fill="steelblue")+
-  coord_flip()+
-  labs(
-    x="GO Term",
-    y="Number of Samples",
-    title="Most Frequently Enriched GO Terms"
-  )+
-  theme_bw()
+## Total number of samples with GO results
+samples_with_GO <- all_GO %>%
+  distinct(SampleID) %>%
+  nrow()
 
-  ## Unique Go Function 
-  unique_GO <- sig_GO %>%
-  group_by(GO.ID, Term, Dataset) %>%
-  summarise(n=n(), .groups="drop") %>%
-  group_by(GO.ID, Term) %>%
-  mutate(
-    datasets_present=n()
-  ) %>%
-  filter(datasets_present==1)
-  
-  unique_GO %>%
-  arrange(Dataset, desc(n))
+## Samples with at least one significant GO term
+samples_with_sigGO <- all_GO %>%
+  filter(Fishers < 0.05) %>%
+  distinct(SampleID) %>%
+  nrow()
 
-  ## Heatmap of presence/absence 
-  heatmap_df <- sig_GO %>%
-  mutate(value=1) %>%
-  select(Term, Sample, value)
+## Report
+cat("Samples with GO terms:", samples_with_GO, "\n") #476
+cat("Samples with significant GO terms:", samples_with_sigGO, "\n") #343
+cat("Total samples:", 492, "\n") #492 
+cat(sprintf("GO assigned: %.1f%%\n", 100 * samples_with_GO / 492)) #96.7%
+cat(sprintf("Significant GO: %.1f%%\n", 100 * samples_with_sigGO / 492)) #69.7% 
 
-ggplot(heatmap_df,
-       aes(Sample, Term, fill=value))+
-    geom_tile()+
-    scale_fill_gradient(low="white", high="darkred")+
-    theme_bw()
+## ============================================================
+## GO TERM FREQUENCY ACROSS SAMPLES
+## ============================================================
 
-## Counting GO terms 
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
+## Total number of samples
+total_samples <- 492
+
+## Create a unique sample identifier
+sig_GO <- sig_GO %>%
+  mutate(SampleID = paste(Dataset, Sample, sep = "_"))
+
+## Count how many samples each GO term appears in
 GO_counts <- sig_GO %>%
-  mutate(SampleID = paste(Dataset, Sample, sep = "_")) %>%
   group_by(GO.ID, Term, Ontology) %>%
   summarise(
     n_samples = n_distinct(SampleID),
     .groups = "drop"
   ) %>%
+  mutate(
+    percent_samples = round(100 * n_samples / total_samples, 1)
+  ) %>%
   arrange(desc(n_samples))
 
-  head(GO_counts, 20)
+## Save results
+write.csv(GO_counts,
+          "GO_term_frequency_across_samples.csv",
+          row.names = FALSE)
 
-  ## Plotting distribution across samples 
-  library(ggplot2)
+## ============================================================
+## SUMMARY
+## ============================================================
 
-ggplot(GO_counts, aes(x = n_samples)) +
-  geom_histogram(binwidth = 1, color = "black", fill = "steelblue") +
-  scale_x_continuous(breaks = seq(1, max(GO_counts$n_samples), by = 1)) +
+cat("\n=============================\n")
+cat("GO TERM SUMMARY\n")
+cat("=============================\n")
+
+cat("Unique significant GO terms:",
+    nrow(GO_counts), "\n\n")
+
+cat("GO terms in ALL samples:",
+    sum(GO_counts$n_samples == total_samples), "\n")
+
+cat("GO terms in >=90% samples:",
+    sum(GO_counts$percent_samples >= 90), "\n")
+
+cat("GO terms in >=75% samples:",
+    sum(GO_counts$percent_samples >= 75), "\n")
+
+cat("GO terms in >=50% samples:",
+    sum(GO_counts$percent_samples >= 50), "\n\n")
+
+cat("Top 10 most common GO terms:\n")
+
+print(
+  GO_counts %>%
+    select(Term, Ontology, n_samples, percent_samples) %>%
+    head(10)
+)
+
+## ============================================================
+## GO TERMS FOUND IN ALL SAMPLES
+## ============================================================
+
+GO_all <- GO_counts %>%
+  filter(n_samples == total_samples)
+
+if(nrow(GO_all)==0){
+  cat("\nNo GO term is significant in all", total_samples, "samples.\n")
+} else{
+  print(GO_all)
+}
+
+## ============================================================
+## BARPLOT OF TOP 20 GO TERMS
+## ============================================================
+
+top25 <- GO_counts %>%
+  slice_max(n_samples, n = 25)
+
+p <- ggplot(top20,
+            aes(reorder(Term, n_samples), n_samples)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
   labs(
-    x = "Number of samples containing the GO term",
-    y = "Number of GO terms",
-    title = "Distribution of GO terms across samples"
+    x = "",
+    y = "Number of samples",
+    title = "Most Common Significant GO Terms"
   ) +
-  theme_bw()
+  theme_bw(base_size = 24)
 
-GO_counts %>%
-  filter(n_samples >= 10) %>%
-  arrange(desc(n_samples))
+print(p)
 
-  total_samples <- 492
+ggsave("Top25_GO_terms.pdf",
+       p,
+       width = 24,
+       height = 18)
 
-GO_summary <- sig_GO %>%
-  mutate(SampleID = paste(Dataset, Sample, sep = "_")) %>%   # unique sample ID
-  group_by(GO.ID, Term, Ontology) %>%
-  summarise(
-    n_samples = n_distinct(SampleID),
-    percent_samples = round(100 * n_samples / total_samples, 1),
-    .groups = "drop"
-  ) %>%
-  arrange(desc(n_samples))
+## ============================================================
+## PRESENCE / ABSENCE HEATMAP
+## ============================================================
+
+## Top 50 GO terms
+top_terms <- GO_counts %>%
+  slice_max(n_samples, n = 50) %>%
+  pull(Term)
+
+heatmap_df <- sig_GO %>%
+  filter(Term %in% top_terms) %>%
+  distinct(Term, SampleID) %>%
+  mutate(value = 1)
+
+heatmap_df <- heatmap_df %>%
+  complete(
+    Term,
+    SampleID,
+    fill = list(value = 0)
+  )
+
+heatmap_plot <- ggplot(
+  heatmap_df,
+  aes(x = SampleID,
+      y = Term,
+      fill = factor(value))
+) +
+  geom_tile() +
+  scale_fill_manual(
+    values = c("0" = "white",
+               "1" = "red"),
+    name = "Significant"
+  ) +
+  labs(
+    x = "Samples",
+    y = "GO Term",
+    title = "Presence of Significant GO Terms Across Samples"
+  ) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.position = "right"
+  )
+
+print(heatmap_plot)
+
+ggsave("GO_term_heatmap.pdf",
+       heatmap_plot,
+       width = 32,
+       height = 20)
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+## ============================================================
+## GO TERM HEATMAPS BY ONTOLOGY (BP / MF / CC)
+## ============================================================
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+## ============================================================
+## SETTINGS
+## ============================================================
+
+top_n_terms <- 50       # number of GO terms per heatmap
+ontologies <- c("BP", "MF", "CC")
+
+
+## ============================================================
+## MAKE HEATMAPS
+## ============================================================
+
+for (ont in ontologies) {
+
+  cat("Creating", ont, "heatmap...\n")
+
+
+  ## -----------------------------
+  ## Filter ontology
+  ## -----------------------------
+
+  GO_ont <- sig_GO %>%
+    filter(Ontology == ont)
+
+
+  ## -----------------------------
+  ## Count GO term frequency
+  ## -----------------------------
+
+  GO_counts_ont <- GO_ont %>%
+    group_by(GO.ID, Term) %>%
+    summarise(
+      n_samples = n_distinct(SampleID),
+      .groups = "drop"
+    ) %>%
+    arrange(desc(n_samples))
+
+
+  ## -----------------------------
+  ## Select top GO terms
+  ## -----------------------------
+
+  top_terms <- GO_counts_ont %>%
+    slice_head(n = top_n_terms) %>%
+    pull(GO.ID)
+
+## Create presence/absence table
+
+term_labels <- GO_ont %>%
+  select(GO.ID, Term) %>%
+  distinct()
+
+
+heatmap_df <- GO_ont %>%
+  filter(GO.ID %in% top_terms) %>%
+  distinct(GO.ID, SampleID) %>%
+  mutate(value = 1)
+
+
+## Fill missing combinations
+heatmap_df <- heatmap_df %>%
+  complete(
+    GO.ID,
+    SampleID,
+    fill = list(value = 0)
+  )
+
+
+## Add GO descriptions once
+heatmap_df <- heatmap_df %>%
+  left_join(
+    term_labels,
+    by = "GO.ID"
+  )
+
+  ## Order GO terms by frequency
+  ## -----------------------------
+
+  term_order <- GO_counts_ont %>%
+    filter(GO.ID %in% top_terms) %>%
+    arrange(n_samples) %>%
+    pull(GO.ID)
+
+
+  heatmap_df$GO.ID <- factor(
+    heatmap_df$GO.ID,
+    levels = term_order
+  )
+
+
+  ## -----------------------------
+  ## Plot
+  ## -----------------------------
+
+  heatmap_plot <- ggplot(
+    heatmap_df,
+    aes(
+      x = SampleID,
+      y = GO.ID,
+      fill = factor(value)
+    )
+  ) +
+    geom_tile() +
+    scale_fill_manual(
+      values = c(
+        "0" = "white",
+        "1" = "red"
+      ),
+      name = "Significant"
+    ) +
+    scale_y_discrete(
+      labels = function(x) {
+        term_labels$Term[
+          match(x, term_labels$GO.ID)
+        ]
+      }
+    ) +
+    labs(
+      x = "Samples",
+      y = "GO Term",
+      title = paste(
+        ont,
+        "Significant GO Terms Across Samples"
+      )
+    ) +
+    theme_bw() +
+    theme(
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.text.y = element_text(size = 8),
+      legend.position = "right"
+    )
+
+
+  print(heatmap_plot)
+
+
+  ## -----------------------------
+  ## Save PDF
+  ## -----------------------------
+
+  ggsave(
+    filename = paste0(
+      ont,
+      "_GO_term_heatmap.pdf"
+    ),
+    plot = heatmap_plot,
+    width = 18,
+    height = 12
+  )
+
+
+  cat("Finished", ont, "\n\n")
+
+}
+
+cat("All GO heatmaps completed.\n")
+
+## ============================================================
+## GO ENRICHMENT BUBBLE PLOTS BY ONTOLOGY
+## ============================================================
+
+library(dplyr)
+library(ggplot2)
+
+top_n <- 30
+
+
+for (ont in c("BP", "MF", "CC")) {
+
+  cat("Creating", ont, "bubble plot\n")
+
+
+  ## Filter ontology
+  GO_ont <- sig_GO %>%
+    filter(Ontology == ont)
+
+
+  ## Summarize GO terms
+  GO_bubble <- GO_ont %>%
+    group_by(GO.ID, Term) %>%
+    summarise(
+      n_samples = n_distinct(SampleID),
+      min_Fisher = min(Fishers),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      log10_p = -log10(min_Fisher),
+      percent_samples = 100 * n_samples / 492
+    ) %>%
+    arrange(desc(n_samples)) %>%
+    slice_head(n = top_n)
+
+
+  ## Order by frequency using GO.ID
+  GO_bubble$GO.ID <- factor(
+    GO_bubble$GO.ID,
+    levels = rev(GO_bubble$GO.ID)
+  )
+
+
+  ## Bubble plot
+  p <- ggplot(
+    GO_bubble,
+    aes(
+      x = percent_samples,
+      y = GO.ID,
+      size = n_samples,
+      color = log10_p
+    )
+  ) +
+    geom_point(alpha = 0.8) +
+    scale_size(
+      range = c(3, 12),
+      name = "Samples"
+    ) +
+    scale_color_gradient(
+      name = "-log10(Fisher)",
+      low = "blue",
+      high = "red"
+    ) +
+    scale_y_discrete(
+      labels = GO_bubble$Term
+    ) +
+    labs(
+      x = "% of samples with significant GO term",
+      y = "",
+      title = paste(
+        ont,
+        "GO Enrichment Across Samples"
+      )
+    ) +
+    theme_bw() +
+    theme(
+      axis.text.y = element_text(size = 9),
+      plot.title = element_text(hjust = 0.5)
+    )
+
+
+  print(p)
+
+
+  ggsave(
+    filename = paste0(
+      ont,
+      "_GO_bubbleplot.pdf"
+    ),
+    plot = p,
+    width = 10,
+    height = 8
+  )
+
+############################################################################
+dataset <- list(
+  Z_NTS2_NTS2_1, 
+  Z_NTS3_NTS3_1, 
+  Z_NTS4_NTS4_1
+)
+
+## Need to average replicates (colname and colname+.1 are replicates of one another)
+## Need cutoff of log10(2)for samples above that (upregulated)
+## Need to figure out a way to prioritize samples to look at 
+## Are there any samples with really strong effects (few genes upregulated to a high degree) and if so, how many and what does the expression look like for those 
+## Are there any samples with lots of genes upregulated all together to a high degree and if so, how many and what does the expression look like for those 
+## Are there any samples with little to no genes being upregulated, how many and what samples are those? 
+
+
+
