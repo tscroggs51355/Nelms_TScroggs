@@ -67,12 +67,12 @@ ht <- Heatmap(
   cluster_columns = TRUE,
   show_row_names = TRUE,
   show_column_names = TRUE,
-  row_names_gp = gpar(fontsize = 8),
-  column_names_gp = gpar(fontsize = 6),
+  row_names_gp = gpar(fontsize = 12),
+  column_names_gp = gpar(fontsize = 12),
   column_names_rot = 90,
   column_title = "Flowering Time Genes: Tissue Expression (row z-score)"
 )
 
-svg("maize_floweringTime_heatmap.svg", width = 25, height = 12)
+svg("maize_floweringTime_heatmap.svg", width = 8, height = 24)
 draw(ht)
 dev.off()
